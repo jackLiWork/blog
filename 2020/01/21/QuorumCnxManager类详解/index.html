@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>QuorumCnxManager类详解 | Hexo</title>
+  <meta name="description" content="1、QuorumCnxManager概述 （1）作为leader选举时用于服务器间网络连接的管理器，采用tcp协议，包括网络层协议的初始化，通过阻塞队列实现发送和接收的异步处理，发送和接收队列中存储对象类型为ByteBuffer，并且是按接收顺序组成FIFO队列，分包是通过设置每个包前四个字节为包的长度来实现（依赖tcp协议来保证分包的正确性和顺序性）。 （2）采用tie-breaking机制（只">
+<meta property="og:type" content="article">
+<meta property="og:title" content="QuorumCnxManager类详解">
+<meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;01&#x2F;21&#x2F;QuorumCnxManager%E7%B1%BB%E8%AF%A6%E8%A7%A3&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1、QuorumCnxManager概述 （1）作为leader选举时用于服务器间网络连接的管理器，采用tcp协议，包括网络层协议的初始化，通过阻塞队列实现发送和接收的异步处理，发送和接收队列中存储对象类型为ByteBuffer，并且是按接收顺序组成FIFO队列，分包是通过设置每个包前四个字节为包的长度来实现（依赖tcp协议来保证分包的正确性和顺序性）。 （2）采用tie-breaking机制（只">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-03-15T12:18:54.000Z">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://jackliwork.github.io/blog/2020/01/21/QuorumCnxManager%E7%B1%BB%E8%AF%A6%E8%A7%A3/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+  
+  
+  
+</head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/blog/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E7%89%B9%E6%80%A7/" rel="tag">Redis特性</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E7%89%B9%E6%80%A7/" style="font-size: 13px;">Redis特性</a> <a href="/blog/tags/zookeeper/" style="font-size: 13px;">zookeeper</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/12/">十二月 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/10/tcp:ip%E5%AD%A6%E4%B9%A0/" class="title">tcp:ip学习</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-10T10:48:58.000Z" itemprop="datePublished">2020-07-10</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" class="title">Redis服务端基本执行流程</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-10T02:37:37.000Z" itemprop="datePublished">2020-07-10</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/09/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" class="title">Redis数据库</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-09T14:12:11.000Z" itemprop="datePublished">2020-07-09</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/08/Redis%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" class="title">Redis基本数据结构</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-08T12:23:43.000Z" itemprop="datePublished">2020-07-08</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/08/Redis%E7%AE%80%E4%BB%8B/" class="title">Redis简介</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-08T11:03:20.000Z" itemprop="datePublished">2020-07-08</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-QuorumCnxManager类详解" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      QuorumCnxManager类详解
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/blog/2020/01/21/QuorumCnxManager%E7%B1%BB%E8%AF%A6%E8%A7%A3/" class="article-date">
+	  <time datetime="2020-01-21T07:19:42.000Z" itemprop="datePublished">2020-01-21</time>
+	</a>
+</span>
+        
+        
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/blog/2020/01/21/QuorumCnxManager%E7%B1%BB%E8%AF%A6%E8%A7%A3/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>1、QuorumCnxManager概述</p>
+<p>（1）作为leader选举时用于服务器间网络连接的管理器，采用tcp协议，包括网络层协议的初始化，通过阻塞队列实现发送和接收的异步处理，发送和接收队列中存储对象类型为ByteBuffer，并且是按接收顺序组成FIFO队列，分包是通过设置每个包前四个字节为包的长度来实现（依赖tcp协议来保证分包的正确性和顺序性）。</p>
+<p>（2）采用tie-breaking机制（只接收sid大于自己sid的网络连接请求，否则断开此连接并由自己向对方发起新连接请求）解决两台服务器并发建立连接时产生重复网络连接</p>
+<p>（3）包含一个信息发送队列，当连接的某一服务器挂了，发送给此服务器的消息将被放入此发送队列</p>
+<p>![image-20200315201832537](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200315201832537.png)</p>
+<p>2、QuorumCnxManager引用图：</p>
+<p>![](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200121152008893.png)</p>
+<p>3、QuorumCnxManager类图</p>
+<p>![image-20200121165325841](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200121165325841.png)</p>
+<p>4、QuorumCnxManager变量详解：</p>
+<table>
+<thead>
+<tr>
+<th align="center">属性名</th>
+<th align="center">属性类型</th>
+<th align="left">属性说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">RECV_CAPACITY</td>
+<td align="center">int</td>
+<td align="left">接收线程队列的最大容量，默认100</td>
+</tr>
+<tr>
+<td align="center">SEND_CAPACITY</td>
+<td align="center">int</td>
+<td align="left">发送线程队列的最大容量，默认1，防止发送旧的notifications</td>
+</tr>
+<tr>
+<td align="center">PACKETMAXSIZE</td>
+<td align="center">int</td>
+<td align="left">接收包的最大字节数，默认512K</td>
+</tr>
+<tr>
+<td align="center">observerCounter</td>
+<td align="center">AtomicLong</td>
+<td align="left">观察者的数量</td>
+</tr>
+<tr>
+<td align="center">maxBuffer</td>
+<td align="center">int</td>
+<td align="left">从网络读取数据时最大缓存大小，默认2048字节</td>
+</tr>
+<tr>
+<td align="center">cnxTO</td>
+<td align="center">int</td>
+<td align="left">tcp建立网络连接时的超时时间</td>
+</tr>
+<tr>
+<td align="center">self</td>
+<td align="center">QuorumPeer</td>
+<td align="left">服务器管理类</td>
+</tr>
+<tr>
+<td align="center">mySid</td>
+<td align="center">long</td>
+<td align="left">服务器对应sid</td>
+</tr>
+<tr>
+<td align="center">socketTimeout</td>
+<td align="center">int</td>
+<td align="left">设置网络socket接收数据时等待的超时时间</td>
+</tr>
+<tr>
+<td align="center">view</td>
+<td align="center">Map&lt;Long, QuorumPeer.QuorumServer&gt;</td>
+<td align="left">用于保存此服务器所在集群服务器中sid和对应服务器使用网络地址（ip和port）间的映射关系</td>
+</tr>
+<tr>
+<td align="center">listenOnAllIPs</td>
+<td align="center">boolean</td>
+<td align="left">是否监听此服务器下的所有网卡（一个网卡对应一个ip地址），即创建socket时仅设置port，监听时会扫描此服务器下所有IP地址对应的port</td>
+</tr>
+<tr>
+<td align="center">ThreadPoolExecutor</td>
+<td align="center">connectionExecutor</td>
+<td align="left">服务器间选举时，用于异步建立连接或异步接收连接时的线程池executor</td>
+</tr>
+<tr>
+<td align="center">inprogressConnections</td>
+<td align="center">Set<Long></Long></td>
+<td align="left">用于异步初始化网络连接应用层协议时，保存连接到的服务器的sid</td>
+</tr>
+<tr>
+<td align="center">authServer</td>
+<td align="center">QuorumAuthServer</td>
+<td align="left">用于此服务在接收连接请求后，提供鉴权检查</td>
+</tr>
+<tr>
+<td align="center">authLearner</td>
+<td align="center">QuorumAuthLearner</td>
+<td align="left">用于此服务在发起连接请求后，提供鉴权检查</td>
+</tr>
+<tr>
+<td align="center">quorumSaslAuthEnabled</td>
+<td align="center">boolean</td>
+<td align="left">是否异步接收连接请求或异步发起连接请求</td>
+</tr>
+<tr>
+<td align="center">connectionThreadCnt</td>
+<td align="center">AtomicInteger</td>
+<td align="left">记录异步网络连接（包括接收和发起连接请求）时使用线程数量</td>
+</tr>
+<tr>
+<td align="center">senderWorkerMap</td>
+<td align="center">ConcurrentHashMap&lt;Long, SendWorker&gt;</td>
+<td align="left">保存服务器sid与发送线程映射关系，此线程用于执行向此服务器发送消息的任务</td>
+</tr>
+<tr>
+<td align="center">queueSendMap</td>
+<td align="center">ConcurrentHashMap&lt;Long, ArrayBlockingQueue<ByteBuffer>&gt;</ByteBuffer></td>
+<td align="left">保存服务器sid与发送队列间映射关系，此队列用于保存待发送到此服务器的数据</td>
+</tr>
+<tr>
+<td align="center">lastMessageSent</td>
+<td align="center">ConcurrentHashMap&lt;Long, ByteBuffer&gt;</td>
+<td align="left">保存服务器sid与最后发送数据间映射关系，此数据为已经发送给此服务器的最新数据</td>
+</tr>
+<tr>
+<td align="center">recvQueue</td>
+<td align="center">ArrayBlockingQueue<Message></Message></td>
+<td align="left">此服务器的接收同步队列</td>
+</tr>
+<tr>
+<td align="center">listener</td>
+<td align="center">Listener</td>
+<td align="left">监听器线程</td>
+</tr>
+<tr>
+<td align="center">threadCnt</td>
+<td align="center">AtomicInteger</td>
+<td align="left">记录此服务器用于接收消息和发送消息时创建的线程数</td>
+</tr>
+<tr>
+<td align="center">tcpKeepAlive</td>
+<td align="center">boolean</td>
+<td align="left">建立tcp连接时是否设置KeepAlive</td>
+</tr>
+</tbody></table>
+<p>5、QuorumCnxManager通过Listener对象进行监听来被动接收网络连接流程：</p>
+<p>![image-20200305220042897](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200305220042897.png)</p>
+<p>6、receiveConnection()方法的详细处理流程：可以看到接收方仅接受发起方sid（发送方发起请求后会发送自己的sid等信息）比接收方sid大的连接请求，同时接收方会主动向被拒绝的发送方（sid比接收方sid小）发起连接请求并发送协议版本号和自己sid等信息。当接收方法接受发送方连接请求后，就会建立发送方的sid对应的接收处理线程和接收同步队列（当有消息到来时，进行接收并放入队列中，否则一直阻塞等待消息）、发送处理线程和发送同步队列（当发送同步队列有值时，进行网络发送，否则阻塞）。</p>
+<p>![image-20200305220814282](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200305220814282.png)</p>
+<p>7、QuorumCnxManager通过暴漏的toSend(Long sid, ByteBuffer b)方法主动发起网络连接流程：先将消息存入同步队列中，当发送线程容器中存在sid对应的线程，则表示此服务器已经与sid服务器建立连接，否则向sid的服务器发起连接请求。</p>
+<p>![image-20200305234231661](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200305234231661.png)</p>
+<p>8、主动发起请求的详细流程：此方法用于服务器去主动发发起建立连接，建立socket连接后会发起方会发送自己的sid等信息，当接收方接收到此消息后，会解析出发起方发送的sid等信息，并与自己的sid进行比较，当发现发起方的sid小于接收方时，接收方会发起关闭socket连接，然后由接收方重新发起socket连接，并发送自己sid等信息；如果发起方的sid大于接收方，则接收方会接受连接并建立发送方sid对应的发送线程和发送同步队列、接收线程和接收同步队列。</p>
+<p>（1）此方法主要用于建立socket连接前一些准备工作，比如获取并更新sid对应的ip地址等</p>
+<p>![image-20200305233815361](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200305233815361.png)</p>
+<p>（2）此方法主要用于建立socket连接</p>
+<p>![image-20200305233922362](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200305233922362.png)</p>
+<p>（3）此方法主要用于在双方建立socket连接，进行应用层协议的初始化</p>
+<p>![image-20200123163529701](/Users/lixiaolong/Library/Application Support/typora-user-images/image-20200123163529701.png)</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://jackliwork.github.io/blog/2020/01/21/QuorumCnxManager%E7%B1%BB%E8%AF%A6%E8%A7%A3/" title="QuorumCnxManager类详解" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/01/21/QuorumCnxManager%E7%B1%BB%E8%AF%A6%E8%A7%A3/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/blog/2020/01/23/QuorumSever%E7%B1%BB%E8%AF%A6%E8%A7%A3/" title="QuorumSever类详解"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/blog/2020/01/21/zookeepe%E9%80%89%E4%B8%BE%E6%B5%81%E7%A8%8B/" title="zookeepe选举流程"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+<script src="/blog/js/plugin.min.js"></script>
+<script src="/blog/js/application.js"></script>
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/blog/',
+        CONTENT_URL: '/blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/blog/js/insight.js"></script>
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
