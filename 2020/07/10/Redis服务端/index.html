@@ -17,16 +17,16 @@
   <meta http-equiv="window-target" content="_top" />
   
   
-  <title>Redis服务端基本执行流程 | Hexo</title>
-  <meta name="description" content="服务器的启动过程1、初始化服务器状态接口  首先创建一个struct类型的redisServer变量server，用于维护服务器的状态 1234567891011121314struct redisServer &amp;#123;&#x2F;&#x2F; serverCron() 每秒调用的次数    int hz;                     &#x2F;* serverCron() calls frequency i">
+  <title>Redis服务端 | Hexo</title>
+  <meta name="description" content="服务器的启动过程服务器启动可以分为几部分：初始化服务器默认配置、解析配置文件并加载配置文件、执行服务器的初始化过程、通过持久化文件还原数据库、执行事件主循环，以下为具体的流程： 123456789101112131415161718192021222324int main(int argc, char **argv) &amp;#123;    struct timeval tv;    int j;">
 <meta name="keywords" content="Redis,Redis服务端">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Redis服务端基本执行流程">
+<meta property="og:title" content="Redis服务端">
 <meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;07&#x2F;10&#x2F;Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF&#x2F;index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="服务器的启动过程1、初始化服务器状态接口  首先创建一个struct类型的redisServer变量server，用于维护服务器的状态 1234567891011121314struct redisServer &amp;#123;&#x2F;&#x2F; serverCron() 每秒调用的次数    int hz;                     &#x2F;* serverCron() calls frequency i">
+<meta property="og:description" content="服务器的启动过程服务器启动可以分为几部分：初始化服务器默认配置、解析配置文件并加载配置文件、执行服务器的初始化过程、通过持久化文件还原数据库、执行事件主循环，以下为具体的流程： 123456789101112131415161718192021222324int main(int argc, char **argv) &amp;#123;    struct timeval tv;    int j;">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2020-07-10T06:55:02.000Z">
+<meta property="og:updated_time" content="2020-07-23T01:57:01.000Z">
 <meta name="twitter:card" content="summary">
   <!-- Canonical links -->
   <link rel="canonical" href="https://jackliwork.github.io/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/index.html">
@@ -127,7 +127,7 @@
   <div class="widget">
     <h3 class="widget-title">分类</h3>
     <div class="widget-body">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java%E5%AD%A6%E4%B9%A0/">Java学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">1</span></li></ul>
     </div>
   </div>
 
@@ -137,7 +137,7 @@
   <div class="widget">
     <h3 class="widget-title">标签</h3>
     <div class="widget-body">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E7%89%B9%E6%80%A7/" rel="tag">Redis特性</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Java/" rel="tag">Java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Raft/" rel="tag">Raft</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" rel="tag">Redis事件</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" rel="tag">Redis命令执行过程</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" rel="tag">Redis复制</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" rel="tag">Redis持久化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" rel="tag">分布式一致性算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="tag">分库分表</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" rel="tag">区间求和</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" rel="tag">垂直拆分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" rel="tag">应用容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" rel="tag">数据库扩展性设计</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="tag">线上常见问题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" rel="tag">线段树</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
     </div>
   </div>
 
@@ -147,7 +147,7 @@
   <div class="widget">
     <h3 class="widget-title">标签云</h3>
     <div class="widget-body tagcloud">
-      <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E7%89%B9%E6%80%A7/" style="font-size: 13px;">Redis特性</a> <a href="/blog/tags/zookeeper/" style="font-size: 13px;">zookeeper</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+      <a href="/blog/tags/Java/" style="font-size: 13px;">Java</a> <a href="/blog/tags/Jedis/" style="font-size: 13px;">Jedis</a> <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Raft/" style="font-size: 13px;">Raft</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" style="font-size: 13px;">Redis事件</a> <a href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" style="font-size: 13px;">Redis命令执行过程</a> <a href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" style="font-size: 13.5px;">Redis复制</a> <a href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" style="font-size: 13px;">Redis持久化</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" style="font-size: 13px;">Redis连接池</a> <a href="/blog/tags/docker/" style="font-size: 13px;">docker</a> <a href="/blog/tags/zookeeper/" style="font-size: 13px;">zookeeper</a> <a href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" style="font-size: 13px;">分布式一致性算法</a> <a href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size: 13px;">分库分表</a> <a href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" style="font-size: 13px;">区间求和</a> <a href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" style="font-size: 13px;">垂直拆分</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">应用容器</a> <a href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" style="font-size: 13px;">数据库扩展性设计</a> <a href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" style="font-size: 13px;">线上常见问题</a> <a href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" style="font-size: 13px;">线段树</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
     </div>
   </div>
 
@@ -156,7 +156,7 @@
   <div class="widget">
     <h3 class="widget-title">归档</h3>
     <div class="widget-body">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/12/">十二月 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/12/">十二月 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
     </div>
   </div>
 
@@ -172,13 +172,28 @@
             
             <div class="item-inner">
               <p class="item-category">
-                
+                <a class="category-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a>
               </p>
               <p class="item-title">
-                <a href="/blog/2020/07/10/tcp:ip%E5%AD%A6%E4%B9%A0/" class="title">tcp:ip学习</a>
+                <a href="/blog/2020/07/26/Raft%E5%8D%8F%E8%AE%AE%E5%AD%A6%E4%B9%A0/" class="title">Raft协议学习</a>
               </p>
               <p class="item-date">
-                <time datetime="2020-07-10T10:48:58.000Z" itemprop="datePublished">2020-07-10</time>
+                <time datetime="2020-07-26T04:55:03.000Z" itemprop="datePublished">2020-07-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/24/docker%E5%AD%A6%E4%B9%A0/" class="title">docker学习</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-24T10:55:35.000Z" itemprop="datePublished">2020-07-24</time>
               </p>
             </div>
           </li>
@@ -190,10 +205,25 @@
                 <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
               </p>
               <p class="item-title">
-                <a href="/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" class="title">Redis服务端基本执行流程</a>
+                <a href="/blog/2020/07/20/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" class="title">Redis命令执行过程</a>
               </p>
               <p class="item-date">
-                <time datetime="2020-07-10T02:37:37.000Z" itemprop="datePublished">2020-07-10</time>
+                <time datetime="2020-07-20T13:28:37.000Z" itemprop="datePublished">2020-07-20</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/15/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/" class="title">数据库扩展性设计与实践</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-15T09:58:13.000Z" itemprop="datePublished">2020-07-15</time>
               </p>
             </div>
           </li>
@@ -205,40 +235,10 @@
                 <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
               </p>
               <p class="item-title">
-                <a href="/blog/2020/07/09/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" class="title">Redis数据库</a>
+                <a href="/blog/2020/07/13/Redis%E4%BA%8B%E4%BB%B6/" class="title">Redis事件</a>
               </p>
               <p class="item-date">
-                <time datetime="2020-07-09T14:12:11.000Z" itemprop="datePublished">2020-07-09</time>
-              </p>
-            </div>
-          </li>
-          
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
-              </p>
-              <p class="item-title">
-                <a href="/blog/2020/07/08/Redis%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" class="title">Redis基本数据结构</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2020-07-08T12:23:43.000Z" itemprop="datePublished">2020-07-08</time>
-              </p>
-            </div>
-          </li>
-          
-          <li>
-            
-            <div class="item-inner">
-              <p class="item-category">
-                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
-              </p>
-              <p class="item-title">
-                <a href="/blog/2020/07/08/Redis%E7%AE%80%E4%BB%8B/" class="title">Redis简介</a>
-              </p>
-              <p class="item-date">
-                <time datetime="2020-07-08T11:03:20.000Z" itemprop="datePublished">2020-07-08</time>
+                <time datetime="2020-07-13T12:11:02.000Z" itemprop="datePublished">2020-07-13</time>
               </p>
             </div>
           </li>
@@ -258,7 +258,7 @@
   <div class="slimContent">
     <nav id="toc" class="article-toc">
       <h3 class="toc-title">文章目录</h3>
-      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#服务器的启动过程"><span class="toc-number">1.</span> <span class="toc-text">服务器的启动过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#服务端维护客户端状态"><span class="toc-number">2.</span> <span class="toc-text">服务端维护客户端状态</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#客户端连接和命令执行过程"><span class="toc-number">3.</span> <span class="toc-text">客户端连接和命令执行过程</span></a></li></ol>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#服务器的启动过程"><span class="toc-number">1.</span> <span class="toc-text">服务器的启动过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#服务端维护客户端状态"><span class="toc-number">2.</span> <span class="toc-text">服务端维护客户端状态</span></a></li></ol>
     </nav>
   </div>
 </aside>
@@ -272,7 +272,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      Redis服务端基本执行流程
+      Redis服务端
     </h1>
   
 
@@ -305,36 +305,130 @@
     </div>
     <div class="article-entry marked-body" itemprop="articleBody">
       
-        <h3 id="服务器的启动过程"><a href="#服务器的启动过程" class="headerlink" title="服务器的启动过程"></a>服务器的启动过程</h3><p>1、初始化服务器状态接口</p>
+        <h3 id="服务器的启动过程"><a href="#服务器的启动过程" class="headerlink" title="服务器的启动过程"></a>服务器的启动过程</h3><p>服务器启动可以分为几部分：初始化服务器默认配置、解析配置文件并加载配置文件、执行服务器的初始化过程、通过持久化文件还原数据库、执行事件主循环，以下为具体的流程：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span> </span>&#123;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">timeval</span> <span class="title">tv</span>;</span></span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line">    ...<span class="comment">// 省略某些前置过程, 如时区、随机数、hash种子、设置oom处理函数等</span></span><br><span class="line">    <span class="comment">// 创建redisServer对象，并初始化服务器默认配置值</span></span><br><span class="line">    initServerConfig();</span><br><span class="line">    ...<span class="comment">//省略存储可执行文件路径和参数的过程</span></span><br><span class="line">    ...<span class="comment">//省略哨兵模式相关初始化配置</span></span><br><span class="line">    <span class="comment">//若有配置文件，将重设服务器参数，并解析启动参数和加载配置文件过程</span></span><br><span class="line">    resetServerSaveParams();</span><br><span class="line">    loadServerConfig(configfile,options);</span><br><span class="line">    <span class="comment">// 初始化服务器相关重要数据结构</span></span><br><span class="line">    initServer();</span><br><span class="line">    ...<span class="comment">//省略部分代码</span></span><br><span class="line">    <span class="comment">// 从磁盘装载数据进行数据还原</span></span><br><span class="line">    loadDataFromDisk();</span><br><span class="line">    ...<span class="comment">//省略部分代码</span></span><br><span class="line">    <span class="comment">// 主循环服务，设置服务器在由于等待文件事件阻塞前的执行函数</span></span><br><span class="line">    aeSetBeforeSleepProc(server.el,beforeSleep);</span><br><span class="line">    aeMain(server.el);</span><br><span class="line">    <span class="comment">// 关闭事件循环器</span></span><br><span class="line">    aeDeleteEventLoop(server.el);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>1、初始化服务器默认配置（执行initServerConfig函数）</p>
 <ul>
 <li><p>首先创建一个struct类型的redisServer变量server，用于维护服务器的状态</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line"><span class="comment">// serverCron() 每秒调用的次数</span></span><br><span class="line">    <span class="keyword">int</span> hz;                     <span class="comment">/* serverCron() calls frequency in hertz */</span></span><br><span class="line">    <span class="comment">// 数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    <span class="keyword">int</span> dbnum;                      <span class="comment">/* Total number of configured DBs */</span></span><br><span class="line">    <span class="keyword">pid_t</span> rdb_child_pid;            <span class="comment">/* PID of RDB saving child */</span></span><br><span class="line">    <span class="comment">// 自从上次 SAVE 执行以来，数据库被修改的次数</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> dirty;                <span class="comment">/* Changes to DB from the last save */</span></span><br><span class="line">    <span class="comment">// 最后一次完成 SAVE 的时间</span></span><br><span class="line">    <span class="keyword">time_t</span> lastsave;                <span class="comment">/* Unix time of last successful save */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">saveparam</span> *<span class="title">saveparams</span>;</span>   <span class="comment">/* Save points array for RDB */</span></span><br><span class="line">    <span class="comment">// ...很多很多</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> hz; <span class="comment">// serverCron() 每秒调用的次数</span></span><br><span class="line">    redisDb *db;<span class="comment">// 数据库数组</span></span><br><span class="line">    <span class="keyword">int</span> dbnum;<span class="comment">//数据库数组的长度</span></span><br><span class="line">    <span class="keyword">pid_t</span> rdb_child_pid;<span class="comment">//用于RDB持久化的子进程PID</span></span><br><span class="line">    <span class="keyword">long</span> <span class="keyword">long</span> dirty;<span class="comment">// 自从上次持久化执行以后，数据库被修改的次数</span></span><br><span class="line">    <span class="keyword">time_t</span> lastsave; <span class="comment">// 最后一次完成持久化的时间</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">saveparam</span> *<span class="title">saveparams</span>;</span><span class="comment">//RDB持久化触发配置参数</span></span><br><span class="line">    ...<span class="comment">//省略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 </li>
-<li><p>初始化server的某些属性，如运行Id、配置文件路径、端口号、持久化条件、创建命令表等</p>
+<li><p>初始化server的某些属性，如运行Id、默认运行频率、配置文件路径、运行架构、默认端口号、默认持久化条件、初始化服务器LRU时钟、创建命令表等</p>
 </li>
 </ul>
-<p>2、载入启动配置参数或者指定配置文件来修改服务器的默认配置</p>
-<p>3、初始化服务的数据结构</p>
+<p>2、载入启动配置参数</p>
+<p>3、初始化服务的数据结构（执行initServer函数）</p>
 <ul>
-<li>创建并初始化redisServer中重要的数据结构，如clients链表，db数据库数组、订阅相关属性、慢查询日志属性等</li>
-<li>初始化lua脚本执行环境</li>
-<li>为服务器设置进程信号处理器</li>
-<li>创建共享对象</li>
-<li>打开服务器的客户端连接监控端口</li>
-<li>创建或打开AOF文件，为AOF写入做好准备</li>
-<li>初始化服务器的后台I/O模块</li>
+<li><p>创建并初始化redisServer中重要的数据结构，如clients链表，db数据库数组、订阅相关属性、慢查询日志属性等</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">server.clients = listCreate();</span><br><span class="line"><span class="comment">// 创建db对象，所有数据存储其中</span></span><br><span class="line">server.db = zmalloc(<span class="keyword">sizeof</span>(redisDb)*server.dbnum);</span><br><span class="line"><span class="comment">// 初始化各db</span></span><br><span class="line"><span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.dbnum; j++) &#123;</span><br><span class="line">  server.db[j].dict = dictCreate(&amp;dbDictType,<span class="literal">NULL</span>);</span><br><span class="line">  server.db[j].expires = dictCreate(&amp;keyptrDictType,<span class="literal">NULL</span>);</span><br><span class="line">  server.db[j].blocking_keys = dictCreate(&amp;keylistDictType,<span class="literal">NULL</span>);</span><br><span class="line">  server.db[j].ready_keys =dictCreate(&amp;objectKeyPointerValueDictType,<span class="literal">NULL</span>);</span><br><span class="line">  server.db[j].watched_keys = dictCreate(&amp;keylistDictType,<span class="literal">NULL</span>);</span><br><span class="line">  server.db[j].eviction_pool = evictionPoolAlloc();</span><br><span class="line">  server.db[j].id = j;</span><br><span class="line">  server.db[j].avg_ttl = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>为服务器设置进程信号处理器</p>
+</li>
+<li><p>创建事件循环对象</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建事件循环对象 (aeEventLoop), 在 ae.c 中实现</span></span><br><span class="line">server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建共享对象</p>
+</li>
+<li><p>打开服务器的客户端连接监控端口并创建文件事件，绑定连接处理函数acceptTcpHandler</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//打开监听端口，支持打开多个监听socket</span></span><br><span class="line"><span class="keyword">if</span> (server.port != <span class="number">0</span> &amp;&amp;</span><br><span class="line">listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == C_ERR)</span><br><span class="line"><span class="comment">//为每个监听socket创建文件事件, 并注册连接请求处理函数acceptTcpHandler</span></span><br><span class="line"><span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.ipfd_count; j++) &#123;</span><br><span class="line">  <span class="keyword">if</span> (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,</span><br><span class="line">                        acceptTcpHandler,<span class="literal">NULL</span>) == AE_ERR)&#123;&#125;&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建时间事件，并为时间事件绑定时间事件处理函数serverCron</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建定时器，每隔1s运行一次，并注册时间处理函数serverCron</span></span><br><span class="line"><span class="keyword">if</span> (aeCreateTimeEvent(server.el, <span class="number">1</span>, serverCron, <span class="literal">NULL</span>, <span class="literal">NULL</span>) == AE_ERR) &#123;&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>创建或打开AOF文件，为AOF写入做好准备</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (server.aof_state == AOF_ON) &#123; <span class="comment">//判断是否打开AOF持久化配置</span></span><br><span class="line">  <span class="comment">//打开AOF文件</span></span><br><span class="line">   server.aof_fd = <span class="built_in">open</span>(server.aof_filename,</span><br><span class="line">                               O_WRONLY|O_APPEND|O_CREAT,<span class="number">0644</span>);&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>初始化系统后台线程，执行AOF持久化相关任务（如磁盘同步、文件资源释放和删除）<a href="https://www.cnblogs.com/learn-my-life/p/5662607.html" target="_blank" rel="noopener">Redis BIO详解</a></p>
+</li>
 </ul>
 <p>4、还原数据库状态</p>
 <ul>
-<li>首先判断服务器是否启用了AOF持久化功能，如果是，则载入AOF文件来还原数据库状态</li>
-<li>如果没有启用了AOF持久化功能，则载入RDB文件来还原数据库状态</li>
+<li>如果服务器启用了AOF持久化功能，则载入AOF文件来还原数据库状态</li>
+<li>如果没有启用AOF持久化功能，则载入RDB文件来还原数据库状态</li>
 <li>打印载入文件并还原数据库所耗费的时长</li>
 </ul>
-<p>5、执行时间服务器的事件循环</p>
+<p>5、执行主事件循环（详见<a href="/blog/2020/07/13/Redis%E4%BA%8B%E4%BB%B6/" title="Redis事件">Redis事件</a>）</p>
 <h3 id="服务端维护客户端状态"><a href="#服务端维护客户端状态" class="headerlink" title="服务端维护客户端状态"></a>服务端维护客户端状态</h3><p>1、客户端状态结构</p>
 <p>一个服务器可以与多个客户端建立网络连接，服务器状态结构的clients属性保存了所有与服务器连接的客户端的状态结构，对应的struct结构对象redisClient如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisClient</span> &#123;</span></span><br><span class="line">		<span class="comment">// 套接字描述符，伪客户端（命令请求来源于AOF文件或者lua脚本）的fd=-1，普通客户端的fd大于1</span></span><br><span class="line">    <span class="keyword">int</span> fd;</span><br><span class="line">    <span class="comment">// 当前客户端正在使用的数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    <span class="comment">//用于保存客户端发送的命令请求</span></span><br><span class="line">  	<span class="comment">//输入缓冲区的大小会根据输入内容动态的缩小扩大，但它的最大大小不能超过1GB，否则服务器将关闭这个客户端</span></span><br><span class="line">    sds querybuf;</span><br><span class="line">    <span class="comment">// 保存当前命令参数的个数</span></span><br><span class="line">    <span class="keyword">int</span> argc;</span><br><span class="line">    <span class="comment">// 保存当前命令对应的命令参数</span></span><br><span class="line">  	<span class="comment">// 注意服务器会根据argv[0]的值，在命令表中查找命令所对应的命令实现函数</span></span><br><span class="line">    robj **argv;</span><br><span class="line">    <span class="comment">// cmd表示此客户端当前正在使用的redis命令，从而传入参数调用对应的命令执行方法</span></span><br><span class="line">  	<span class="comment">// lastcmd表示此客户端上一次使用的redis命令</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> *<span class="title">cmd</span>, *<span class="title">lastcmd</span>;</span></span><br><span class="line">  	</span><br><span class="line">  	<span class="comment">//默认大小为16k</span></span><br><span class="line">    <span class="keyword">char</span> buf[PROTO_REPLY_CHUNK_BYTES];</span><br><span class="line">  	<span class="comment">// 记录buf 数组到目前为止已经使用的字节数量</span></span><br><span class="line">  	<span class="keyword">int</span> bufpos;</span><br><span class="line">  </span><br><span class="line">  	<span class="comment">//回复缓冲区，用来保存回复比较大的内容，使用链表来保存</span></span><br><span class="line">    <span class="built_in">list</span> *reply;</span><br><span class="line">  	<span class="comment">//回复缓冲区中缓冲数据的总字节数</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> reply_bytes; <span class="comment">/* Tot bytes of objects in reply list */</span></span><br><span class="line">  	<span class="comment">//已经被发送的字节数量</span></span><br><span class="line">    <span class="keyword">int</span> sentlen;            </span><br><span class="line">  	<span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisClient</span> &#123;</span></span><br><span class="line">		<span class="comment">// 套接字描述符，</span></span><br><span class="line">    <span class="comment">//伪客户端（命令请求来源于AOF文件或者lua脚本）的fd=-1，普通客户端的fd大于-1</span></span><br><span class="line">    <span class="keyword">int</span> fd;</span><br><span class="line">    <span class="comment">// 当前客户端正在使用的数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    <span class="comment">//用于保存客户端发送的命令请求</span></span><br><span class="line">  	<span class="comment">//输入缓冲区的大小会根据输入内容动态的缩小扩大，但它的最大大小不能超过1GB，</span></span><br><span class="line">    <span class="comment">//否则服务器将关闭这个客户端</span></span><br><span class="line">    sds querybuf;</span><br><span class="line">    <span class="keyword">int</span> argc; <span class="comment">// 保存argv数组的长度</span></span><br><span class="line">    <span class="comment">// 保存当前命令对应的命令参数</span></span><br><span class="line">  	<span class="comment">// 注意服务器会根据argv[0]的值，在命令表中查找命令所对应的命令实现函数</span></span><br><span class="line">    robj **argv;</span><br><span class="line">    <span class="comment">// cmd表示此客户端当前正在使用的redis命令，从而传入参数调用对应的命令执行方法</span></span><br><span class="line">  	<span class="comment">// lastcmd表示此客户端上一次使用的redis命令</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> *<span class="title">cmd</span>, *<span class="title">lastcmd</span>;</span></span><br><span class="line">  	<span class="keyword">int</span> flags;<span class="comment">//记录了客户端的角色和状态，如主从服务器标识、客户端类型标识等</span></span><br><span class="line">    <span class="keyword">char</span> buf[PROTO_REPLY_CHUNK_BYTES];<span class="comment">//默认大小为16k</span></span><br><span class="line">  	<span class="keyword">int</span> bufpos;<span class="comment">// 记录buf 数组到目前为止已经使用的字节数量</span></span><br><span class="line">    <span class="built_in">list</span> *reply; <span class="comment">//回复缓冲区，用来保存回复比较大的内容，使用链表来保存</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> reply_bytes; <span class="comment">//回复缓冲区中缓冲数据的总字节数</span></span><br><span class="line">    <span class="keyword">int</span> sentlen;   <span class="comment">//已经被发送的字节数量</span></span><br><span class="line">  	<span class="keyword">int</span> authenticated;<span class="comment">//记录客户端是否通过了身份验证，0表示未通过</span></span><br><span class="line">  	<span class="comment">//记录了客户端最后一次进行互动的时间，包括发送请求命令和回复命令，计算空闲时间</span></span><br><span class="line">  	<span class="keyword">int</span> lastinteraction;</span><br><span class="line">  	<span class="comment">//...</span></span><br><span class="line">  	<span class="comment">//客户端目前所处的状态，每一位表示一个标志</span></span><br><span class="line">    <span class="keyword">int</span> flags;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
+<p>flags含义如下：</p>
+<table>
+<thead>
+<tr>
+<th>标志</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>REDIS_MASTER</td>
+<td>标识客户端为master服务器</td>
+</tr>
+<tr>
+<td>REDIS_SLAVE</td>
+<td>标识客户端为slave服务器</td>
+</tr>
+<tr>
+<td>REDIS_PRE_PSYNC</td>
+<td>表示不能对此客户端标识的从服务器执行SYNC命令</td>
+</tr>
+<tr>
+<td>REDIS_LUA_CLIENT</td>
+<td>表示客户端是专门用于处理Lua脚本的伪客户端</td>
+</tr>
+<tr>
+<td>REDIS_MONITOR</td>
+<td>表示客户端正在执行MONITOR命令，即Redis服务器会向它发送接收到的命令</td>
+</tr>
+<tr>
+<td>REDIS_UNIX_SOCKET</td>
+<td>表示客户端与服务器通过使用UNIX套接字进行连接</td>
+</tr>
+<tr>
+<td>REDIS_BLOCKED</td>
+<td>表示客户端当前正处于阻塞状态，如被BRPOP或BLPOP命令阻塞</td>
+</tr>
+<tr>
+<td>REDIS_UNBLOCKED</td>
+<td>表示客户端当前已经从REDIS_BLOCKED标志的阻塞状态中被唤醒</td>
+</tr>
+<tr>
+<td>REDIS_MULTI</td>
+<td>表示客户端正在执行事务</td>
+</tr>
+<tr>
+<td>REDIS_DIRTY_CAS</td>
+<td>表示事务使用WATCH命令监视的数据库键已经被修改</td>
+</tr>
+<tr>
+<td>REDIS_DIRTY_EXEC</td>
+<td>表示事务在命令入队时出错，表示事务的安全性已经被破坏</td>
+</tr>
+<tr>
+<td>REDIS_CLOSE_ASAP</td>
+<td>表示客户端的输出缓冲区大小超出服务器允许范围，客户端会在时间事件中关闭</td>
+</tr>
+<tr>
+<td>REDIS_CLOSE_AFTER_REPLY</td>
+<td>表示由用户对此客户端执行了kill命令或者客户端发送的命令请求协议格式有误</td>
+</tr>
+<tr>
+<td>REDIS_ASKING</td>
+<td>表示客户端向集群节点发送了ASKING命令</td>
+</tr>
+<tr>
+<td>REDIS_FORCE_AOF</td>
+<td>表示客户端强制服务器将当前执行的命令写入AOF文件中，如PUBSUB命令和SCRIPT LOAD</td>
+</tr>
+<tr>
+<td>REDIS_FORCE_REPL</td>
+<td>表示客户端强制主服务器将当前执行的命令同步给所有从服务器，如SCRIPT LOAD</td>
+</tr>
+<tr>
+<td>REDIS_MASTER_FORCE_REPLY</td>
+<td>主从服务器进行命令传播期间，当主服务器的此标志位被设置时，从服务器才能向主服务器发送REPLICATION ACK命令，</td>
+</tr>
+</tbody></table>
 <p>2、创建普通客户端</p>
 <p>客户端在使用connect函数连接到服务器时，服务端会为客户端创建相应的客户端状态结构redisClient，并将这个新的客户端状态结构添加到服务器状态结构clients链表的末尾</p>
 <p>3、Lua脚本的伪客户端</p>
@@ -345,7 +439,7 @@
 <ul>
 <li><p>硬性限制：当缓冲区大小超出硬性限制大小之后，服务器马上关闭客户端。</p>
 </li>
-<li><p>软性限制：当缓冲区大小超出软性限制大小但没有超出硬性限制，服务器通过obuf_soft_limit_reached_time属性记录客户端到达软性限制的起始时间，之后服务器会持续监视客户端，如果输出缓冲区一直超出软性限制，并且持续时间超过服务器设定的时长，那么服务器将关闭客户端；相反地如果输出缓冲区在指定时间内不再超出软性限制，那么客户端不会被关闭，并且obuf_soft_limit_reached_time属性值也会被清零。</p>
+<li><p>软性限制：当缓冲区大小超出软性限制大小但没有超出硬性限制，服务器通过obuf_soft_limit_reached_time属性记录客户端开始软性限制的时间，之后服务器会持续监视客户端，如果持续处于软性限制的时间超过服务器设定的时长，那么服务器将关闭客户端；相反地如果输出缓冲区在指定时长内回到正常状态，客户端将不会被关闭，并且obuf_soft_limit_reached_time属性值也会被清零。</p>
 </li>
 </ul>
 <p>6、关闭普通客户端：关闭客户端时会释放服务器端维护的客户端相关内存资源和句柄资源，关闭条件如下：</p>
@@ -357,10 +451,6 @@
 <li>客户端发送的命令请求的大小超过了输入缓冲区的限制大小</li>
 <li>要发送给客户端的命令回复的大小超过了输出缓冲区的限制大小</li>
 </ul>
-<h3 id="客户端连接和命令执行过程"><a href="#客户端连接和命令执行过程" class="headerlink" title="客户端连接和命令执行过程"></a>客户端连接和命令执行过程</h3><ol>
-<li>当客户端向Redis请求建立socket时，服务器会为每个连接创建一个redisClient对象，配置并注册读事件处理器</li>
-<li><a href="https://www.cnblogs.com/remcarpediem/p/12024468.html" target="_blank" rel="noopener">https://www.cnblogs.com/remcarpediem/p/12024468.html</a></li>
-</ol>
 
       
     </div>
@@ -370,7 +460,7 @@
     
     <li class="post-copyright-link hidden-xs">
       <strong>本文链接：</strong>
-      <a href="https://jackliwork.github.io/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" title="Redis服务端基本执行流程" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/</a>
+      <a href="https://jackliwork.github.io/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" title="Redis服务端" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/07/10/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/</a>
     </li>
     
     <li class="post-copyright-license">

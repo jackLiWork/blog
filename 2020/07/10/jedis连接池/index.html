@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>jedis连接池 | Hexo</title>
+  <meta name="description" content="1. 什么是jedis连接池？我们获取一个tcp连接需要经历“创建”、“使用”和“释放”三个阶段。由于tcp连接的释放和创建比较耗时，若每次tcp连接使用完后就释放掉，等到下次需要时再重新创建，就会非常消耗资源。同时对于高QPS场景，频繁的创建和释放容易给系统造成较大压力（cpu负载高、大量tcp连接处于等待关闭状态）。因此为了能够复用这些连接资源，需要将使用过的tcp连接保存或暂存一段时间，在需">
+<meta name="keywords" content="Jedis,Redis连接池">
+<meta property="og:type" content="article">
+<meta property="og:title" content="jedis连接池">
+<meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;07&#x2F;10&#x2F;jedis%E8%BF%9E%E6%8E%A5%E6%B1%A0&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 什么是jedis连接池？我们获取一个tcp连接需要经历“创建”、“使用”和“释放”三个阶段。由于tcp连接的释放和创建比较耗时，若每次tcp连接使用完后就释放掉，等到下次需要时再重新创建，就会非常消耗资源。同时对于高QPS场景，频繁的创建和释放容易给系统造成较大压力（cpu负载高、大量tcp连接处于等待关闭状态）。因此为了能够复用这些连接资源，需要将使用过的tcp连接保存或暂存一段时间，在需">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;.io&#x2F;JedisPool%E7%B1%BB%E5%9B%BE.png">
+<meta property="og:updated_time" content="2020-07-14T13:35:25.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;.io&#x2F;JedisPool%E7%B1%BB%E5%9B%BE.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://jackliwork.github.io/blog/2020/07/10/jedis%E8%BF%9E%E6%8E%A5%E6%B1%A0/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+  
+  
+  
+</head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/blog/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java%E5%AD%A6%E4%B9%A0/">Java学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">9</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Java/" rel="tag">Java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Raft/" rel="tag">Raft</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" rel="tag">Redis事件</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" rel="tag">Redis命令执行过程</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" rel="tag">Redis复制</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" rel="tag">Redis持久化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" rel="tag">分布式一致性算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="tag">分库分表</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" rel="tag">区间求和</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" rel="tag">垂直拆分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" rel="tag">应用容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" rel="tag">数据库扩展性设计</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="tag">线上常见问题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" rel="tag">线段树</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/blog/tags/Java/" style="font-size: 13px;">Java</a> <a href="/blog/tags/Jedis/" style="font-size: 13px;">Jedis</a> <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Raft/" style="font-size: 13px;">Raft</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" style="font-size: 13px;">Redis事件</a> <a href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" style="font-size: 13px;">Redis命令执行过程</a> <a href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" style="font-size: 13.5px;">Redis复制</a> <a href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" style="font-size: 13px;">Redis持久化</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" style="font-size: 13px;">Redis连接池</a> <a href="/blog/tags/docker/" style="font-size: 13px;">docker</a> <a href="/blog/tags/zookeeper/" style="font-size: 13px;">zookeeper</a> <a href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" style="font-size: 13px;">分布式一致性算法</a> <a href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size: 13px;">分库分表</a> <a href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" style="font-size: 13px;">区间求和</a> <a href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" style="font-size: 13px;">垂直拆分</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">应用容器</a> <a href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" style="font-size: 13px;">数据库扩展性设计</a> <a href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" style="font-size: 13px;">线上常见问题</a> <a href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" style="font-size: 13px;">线段树</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/12/">十二月 2019</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/26/Raft%E5%8D%8F%E8%AE%AE%E5%AD%A6%E4%B9%A0/" class="title">Raft协议学习</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-26T04:55:03.000Z" itemprop="datePublished">2020-07-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/24/docker%E5%AD%A6%E4%B9%A0/" class="title">docker学习</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-24T10:55:35.000Z" itemprop="datePublished">2020-07-24</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/20/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" class="title">Redis命令执行过程</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-20T13:28:37.000Z" itemprop="datePublished">2020-07-20</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/15/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/" class="title">数据库扩展性设计与实践</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-15T09:58:13.000Z" itemprop="datePublished">2020-07-15</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/07/13/Redis%E4%BA%8B%E4%BB%B6/" class="title">Redis事件</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-07-13T12:11:02.000Z" itemprop="datePublished">2020-07-13</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      <ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-什么是jedis连接池？"><span class="toc-number">1.</span> <span class="toc-text">1. 什么是jedis连接池？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-jedis连接池基本原理"><span class="toc-number">2.</span> <span class="toc-text">2. jedis连接池基本原理</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#2-1-PooledObjectFactory"><span class="toc-number">2.1.</span> <span class="toc-text">2.1 PooledObjectFactory</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2-2-ObjectPool"><span class="toc-number">2.2.</span> <span class="toc-text">2.2 ObjectPool</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#2-2-1-GenericObjectPool-核心配置参数"><span class="toc-number">2.2.1.</span> <span class="toc-text">2.2.1 GenericObjectPool 核心配置参数</span></a></li></ol></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2-2-2-GenericObjectPool-借出和归还逻辑"><span class="toc-number">2.3.</span> <span class="toc-text">2.2.2 GenericObjectPool 借出和归还逻辑</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2-2-3-GenericObjectPool-空闲对象的检测"><span class="toc-number">2.4.</span> <span class="toc-text">2.2.3 GenericObjectPool 空闲对象的检测</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2-3-Pool"><span class="toc-number">2.5.</span> <span class="toc-text">2.3 Pool</span></a></li></ol></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-jedis连接池" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      jedis连接池
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/blog/2020/07/10/jedis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" class="article-date">
+	  <time datetime="2020-07-10T11:44:37.000Z" itemprop="datePublished">2020-07-10</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a>, <a class="article-tag-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/blog/2020/07/10/jedis%E8%BF%9E%E6%8E%A5%E6%B1%A0/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h4 id="1-什么是jedis连接池？"><a href="#1-什么是jedis连接池？" class="headerlink" title="1. 什么是jedis连接池？"></a>1. 什么是jedis连接池？</h4><p>我们获取一个tcp连接需要经历“创建”、“使用”和“释放”三个阶段。由于tcp连接的释放和创建比较耗时，若每次tcp连接使用完后就释放掉，等到下次需要时再重新创建，就会非常消耗资源。同时对于高QPS场景，频繁的创建和释放容易给系统造成较大压力（cpu负载高、大量tcp连接处于等待关闭状态）。因此为了能够复用这些连接资源，需要将使用过的tcp连接保存或暂存一段时间，在需要时直接使用，这种用于管理暂存连接对象的“容器”就是连接池，它使得tcp连接可复用，减少频繁创建和销毁造成的开销。</p>
+<h4 id="2-jedis连接池基本原理"><a href="#2-jedis连接池基本原理" class="headerlink" title="2. jedis连接池基本原理"></a>2. jedis连接池基本原理</h4><p>jedis连接池负责管理redis连接，在我们需要redis连接时，直接向连接池获取连接，连接池帮我们创建、缓存、销毁和验证连接；当redis连接使用完后，再将redis连接归还连接池。jedis使用的pool是apache实现的对象池，在其pool组件中，对象池化工作被划分了三类对象： PooledObjectFactory， ObjectPool，Pool。</p>
+<p><img src="/blog/.io//../JedisPool%E7%B1%BB%E5%9B%BE.png" alt="JedisPool类图"></p>
+<h5 id="2-1-PooledObjectFactory"><a href="#2-1-PooledObjectFactory" class="headerlink" title="2.1 PooledObjectFactory"></a>2.1 PooledObjectFactory</h5><p>   PooledObjectFactory用于管理被池化的对象的产生、激活、挂起、校验和销毁，它是一个接口。具体定义如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">PooledObjectFactory</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">  <span class="comment">// 用于产生新的对象</span></span><br><span class="line">  <span class="function">PooledObject&lt;T&gt; <span class="title">makeObject</span><span class="params">()</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line">  <span class="comment">// 用于销毁被validateObject判定为已失效的对象</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">destroyObject</span><span class="params">(PooledObject&lt;T&gt; p)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line"> <span class="comment">// 用于校验一个具体的对象是否仍然有效，如果对象失效会被destroyObject 方法销毁</span></span><br><span class="line">  <span class="function"><span class="keyword">boolean</span> <span class="title">validateObject</span><span class="params">(PooledObject&lt;T&gt; p)</span></span>;</span><br><span class="line"> <span class="comment">//  将对象重新设置为初始状态</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">activateObject</span><span class="params">(PooledObject&lt;T&gt; p)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line"><span class="comment">// 将这个对象挂起，设置为休眠状态</span></span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">passivateObject</span><span class="params">(PooledObject&lt;T&gt; p)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>   Jedis连接池中实现PooledObjectFactory接口的实现类为JedisFactory，具体实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">JedisFactory</span> <span class="keyword">implements</span> <span class="title">PooledObjectFactory</span>&lt;<span class="title">Jedis</span>&gt; </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> AtomicReference&lt;HostAndPort&gt; hostAndPort = <span class="keyword">new</span> AtomicReference&lt;HostAndPort&gt;();</span><br><span class="line">  <span class="comment">//Jedis建立网络连接最大超时时间</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> connectionTimeout;</span><br><span class="line">  <span class="comment">//Jedis连接读取数据时最大阻塞时间</span></span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> soTimeout;</span><br><span class="line">  <span class="comment">//用于激活Redis连接</span></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">activateObject</span><span class="params">(PooledObject&lt;Jedis&gt; pooledJedis)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">  &#125;</span><br><span class="line">	<span class="comment">//用于销毁Redis连接对象</span></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">destroyObject</span><span class="params">(PooledObject&lt;Jedis&gt; pooledJedis)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> BinaryJedis jedis = pooledJedis.getObject();</span><br><span class="line">        <span class="keyword">if</span> (jedis.isConnected()) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    jedis.quitNoReply();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Exception ignore) &#123;</span><br><span class="line">                &#125;</span><br><span class="line">                jedis.disconnect();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception ignore) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//创建Redis连接对象</span></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> PooledObject&lt;Jedis&gt; <span class="title">makeObject</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">final</span> HostAndPort hostAndPort = <span class="keyword">this</span>.hostAndPort.get();</span><br><span class="line">        <span class="keyword">final</span> Jedis jedis = <span class="keyword">new</span> Jedis(hostAndPort.getHost(), hostAndPort.getPort()</span><br><span class="line">                                      , connectionTimeout, soTimeout);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            jedis.connect();</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">null</span> != <span class="keyword">this</span>.password) &#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    jedis.auth(<span class="keyword">this</span>.password);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (JedisNoNeedAuthException ignore) &#123;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (database != <span class="number">0</span>) &#123;</span><br><span class="line">                jedis.select(database);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (readOnly) &#123;</span><br><span class="line">                jedis.readOnly();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                jedis.close();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception ignore) &#123;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">throw</span> e;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> DefaultPooledObject&lt;Jedis&gt;(jedis);</span><br><span class="line">    &#125;</span><br><span class="line">	<span class="comment">//用于钝化Redis连接对象</span></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">passivateObject</span><span class="params">(PooledObject&lt;Jedis&gt; pooledJedis)</span> <span class="keyword">throws</span> Exception </span>&#123;&#125;</span><br><span class="line">	<span class="comment">//用于验证Redis连接是否可用</span></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">validateObject</span><span class="params">(PooledObject&lt;Jedis&gt; pooledJedis)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> BinaryJedis jedis = pooledJedis.getObject();</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      HostAndPort hostAndPort = <span class="keyword">this</span>.hostAndPort.get();</span><br><span class="line">      String connectionHost = jedis.getClient().getHost();</span><br><span class="line">      <span class="keyword">int</span> connectionPort = jedis.getClient().getPort();</span><br><span class="line">      <span class="keyword">return</span> hostAndPort.getHost().equals(connectionHost)</span><br><span class="line">          &amp;&amp; hostAndPort.getPort() == connectionPort &amp;&amp; jedis.isConnected()</span><br><span class="line">          &amp;&amp; jedis.ping().equals(<span class="string">"PONG"</span>);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-2-ObjectPool"><a href="#2-2-ObjectPool" class="headerlink" title="2.2 ObjectPool"></a>2.2 ObjectPool</h5><p>ObjectPool用于管理被池化对象的获取和归还，GenericObjectPool为ObjectPool接口的一种实现，jedis使用的对象池就为GenericObjectPool。目前对象池支持通过GenericObjectPoolConfig类来实现对象池参数的配置</p>
+<h6 id="2-2-1-GenericObjectPool-核心配置参数"><a href="#2-2-1-GenericObjectPool-核心配置参数" class="headerlink" title="2.2.1 GenericObjectPool 核心配置参数"></a>2.2.1 GenericObjectPool 核心配置参数</h6><table>
+<thead>
+<tr>
+<th>变量名</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>maxTotal</td>
+<td>控制对象池中池化对象的最大数量。默认值是8，负数表示没限制</td>
+</tr>
+<tr>
+<td>maxIdle</td>
+<td>控制池中空闲池化对象的最大数量。默认值是8，负值表示没限制</td>
+</tr>
+<tr>
+<td>minIdle</td>
+<td>控制池中空闲池化对象的最小数量。默认值是0</td>
+</tr>
+<tr>
+<td>maxWaitMillis</td>
+<td>获取池中池化对象时最大的等待时间，负值表示没限制，默认-1</td>
+</tr>
+<tr>
+<td>fairness</td>
+<td>获取池中对象且有竞争时是否采取公平方式，默认非公平</td>
+</tr>
+<tr>
+<td>testOnBorrow</td>
+<td>控制在向资源池借用连接前是否对连接进行有效性检测，检测到无效时连接会被移除。默认false</td>
+</tr>
+<tr>
+<td>testOnReturn</td>
+<td>控制在向资源池归还连接时是否对连接进行有效性检测。检测到无效时连接会被移除。默认为false</td>
+</tr>
+<tr>
+<td>blockWhenExhausted</td>
+<td>指定池中对象被消耗完以后的采取的策略，0抛异常，1表示阻塞最大maxWaitMillis时间，默认会一直等待</td>
+</tr>
+</tbody></table>
+<h5 id="2-2-2-GenericObjectPool-借出和归还逻辑"><a href="#2-2-2-GenericObjectPool-借出和归还逻辑" class="headerlink" title="2.2.2 GenericObjectPool 借出和归还逻辑"></a>2.2.2 GenericObjectPool 借出和归还逻辑</h5><p>可以看出对象池只负责管理对象，对于对象的生产、激活、销毁和验证等由具体的工厂提供，即JedisFactory。从borrowObject方法可以看出，对象是采取懒加载的方式进行创建，并且借出对象前会进行检查。新创建的对象一开始并不是放在idle队列中，只有在对象return的时候才返回到idle队列（注意由于篇幅有限，仅展示部分主逻辑代码）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GenericObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">extends</span> <span class="title">BaseGenericObjectPool</span>&lt;<span class="title">T</span>&gt;</span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt;, <span class="title">GenericObjectPoolMXBean</span>, <span class="title">UsageTracking</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">  	<span class="comment">//省去了参数配置相关的属性和方法</span></span><br><span class="line">    <span class="comment">//借出对象</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> T <span class="title">borrowObject</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> borrowMaxWaitMillis)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">while</span> (p == <span class="keyword">null</span>) &#123;</span><br><span class="line">            create = <span class="keyword">false</span>;</span><br><span class="line">            p = idleObjects.pollFirst();</span><br><span class="line">          	<span class="comment">//如果不存在会调用池化对象工厂创建对象，如JedisFactory</span></span><br><span class="line">            <span class="keyword">if</span> (p == <span class="keyword">null</span>) &#123;</span><br><span class="line">                p = create();</span><br><span class="line">                <span class="keyword">if</span> (p != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    create = <span class="keyword">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">          	<span class="comment">//当池化对象用尽后，策略选择逻辑</span></span><br><span class="line">            <span class="keyword">if</span> (blockWhenExhausted) &#123; <span class="comment">//选择阻塞策略</span></span><br><span class="line">                <span class="keyword">if</span> (p == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (borrowMaxWaitMillis &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                      	<span class="comment">//一直阻塞</span></span><br><span class="line">                        p = idleObjects.takeFirst();</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                      	<span class="comment">//阻塞borrowMaxWaitMillis时间</span></span><br><span class="line">                        p = idleObjects.pollFirst(borrowMaxWaitMillis,TimeUnit.MILLISECONDS);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123; <span class="comment">//选择拒绝策略</span></span><br><span class="line">                <span class="keyword">if</span> (p == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> NoSuchElementException(<span class="string">"Pool exhausted"</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">						<span class="comment">//返回之前会先激活对象，激活失败会删除</span></span><br><span class="line">            <span class="keyword">if</span> (p != <span class="keyword">null</span>) &#123;</span><br><span class="line">                 factory.activateObject(p);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">      	<span class="comment">//更新借出状态</span></span><br><span class="line">        updateStatsBorrow(p, System.currentTimeMillis() - waitTime);</span><br><span class="line">        <span class="keyword">return</span> p.getObject();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">   	<span class="comment">//归还对象</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnObject</span><span class="params">(<span class="keyword">final</span> T obj)</span> </span>&#123;</span><br><span class="line">				<span class="comment">//标记状态为归还中</span></span><br><span class="line">        markReturningState(p);</span><br><span class="line">      	<span class="comment">//归还时需要满足相应条件才会放入空闲池中</span></span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> maxIdleSave = getMaxIdle();</span><br><span class="line">        <span class="keyword">if</span> (isClosed() || maxIdleSave &gt; -<span class="number">1</span> &amp;&amp; maxIdleSave &lt;= idleObjects.size()) &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                destroy(p);</span><br><span class="line">            &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e) &#123;&#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          	<span class="comment">//加入空闲池中</span></span><br><span class="line">            idleObjects.addLast(p);</span><br><span class="line">        &#125;</span><br><span class="line">      	<span class="comment">//标记状态为空闲</span></span><br><span class="line">        updateStatsReturn(activeTime);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-2-3-GenericObjectPool-空闲对象的检测"><a href="#2-2-3-GenericObjectPool-空闲对象的检测" class="headerlink" title="2.2.3 GenericObjectPool 空闲对象的检测"></a>2.2.3 GenericObjectPool 空闲对象的检测</h5><p>空闲对象检测的核心配置参数：</p>
+<table>
+<thead>
+<tr>
+<th>变量名</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>testWhileIdle</td>
+<td>控制连接池中池化对象在处于空闲状态时是否进行再激活和有效性测试。默认false</td>
+</tr>
+<tr>
+<td>numTestsPerEvictionRun</td>
+<td>在连接池周期性进行空闲对象检测和移除时，控制一个周期内处理的对象数量。默认值是3</td>
+</tr>
+<tr>
+<td>minEvictableIdleTimeMillis</td>
+<td>空闲对象最大空闲时间。当某空闲连接的空闲时间超过此阈值且连接池中空闲的连接数大于minIdle时，才会移除此空闲对象。默认是30min</td>
+</tr>
+<tr>
+<td>softMinEvictableIdleTimeMillis</td>
+<td>空闲对象最大空闲时间。只要某连接的空闲时间超过此阈值就会移除此空闲连接。默认是-1</td>
+</tr>
+<tr>
+<td>timeBetweenEvictionRunsMillis</td>
+<td>相邻两次空闲对象检测的时间间隔，即检测周期，默认为-1，即不开启空闲连接检测</td>
+</tr>
+</tbody></table>
+<p>Evict相关参数配置流程以及启动周期检测与移除任务流程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GenericObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">extends</span> <span class="title">BaseGenericObjectPool</span>&lt;<span class="title">T</span>&gt;</span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt;, <span class="title">GenericObjectPoolMXBean</span>, <span class="title">UsageTracking</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">GenericObjectPool</span><span class="params">(<span class="keyword">final</span> PooledObjectFactory&lt;T&gt; factory,</span></span></span><br><span class="line"><span class="function"><span class="params">                               <span class="keyword">final</span> GenericObjectPoolConfig&lt;T&gt; config)</span> </span>&#123;</span><br><span class="line">          <span class="comment">//...</span></span><br><span class="line">          <span class="comment">//设置详细的配置参数</span></span><br><span class="line">          setConfig(config);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setConfig</span><span class="params">(<span class="keyword">final</span> GenericObjectPoolConfig&lt;T&gt; conf)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">    setTestWhileIdle(conf.getTestWhileIdle());</span><br><span class="line">    setNumTestsPerEvictionRun(conf.getNumTestsPerEvictionRun());</span><br><span class="line">    setMinEvictableIdleTimeMillis(conf.getMinEvictableIdleTimeMillis());</span><br><span class="line">    <span class="comment">//当timeBetweenEvictionRunsMillis参数大于0，才会启动空闲连接定期检测移除任务</span></span><br><span class="line">    <span class="comment">//在此方法内进行定期检测移除任务的启动流程</span></span><br><span class="line">    setTimeBetweenEvictionRunsMillis(conf.getTimeBetweenEvictionRunsMillis());</span><br><span class="line">    setSoftMinEvictableIdleTimeMillis(conf.getSoftMinEvictableIdleTimeMillis());</span><br><span class="line">    <span class="keyword">final</span> EvictionPolicy&lt;T&gt; policy = conf.getEvictionPolicy();</span><br><span class="line">    <span class="comment">//设置空闲连接移除规则，即确定空闲连接被移除连接池的条件</span></span><br><span class="line">    setEvictionPolicy(policy);</span><br><span class="line">    setEvictorShutdownTimeoutMillis(conf.getEvictorShutdownTimeoutMillis());</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">setTimeBetweenEvictionRunsMillis</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">    <span class="keyword">final</span> <span class="keyword">long</span> timeBetweenEvictionRunsMillis)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.timeBetweenEvictionRunsMillis = timeBetweenEvictionRunsMillis;</span><br><span class="line">    <span class="comment">//进行定期检测移除任务的启动流程</span></span><br><span class="line">    startEvictor(timeBetweenEvictionRunsMillis);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="function"><span class="keyword">final</span> <span class="keyword">void</span> <span class="title">startEvictor</span><span class="params">(<span class="keyword">final</span> <span class="keyword">long</span> delay)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (evictionLock) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">null</span> != evictor) &#123;</span><br><span class="line">                EvictionTimer.cancel(evictor, evictorShutdownTimeoutMillis, TimeUnit.MILLISECONDS);</span><br><span class="line">                evictor = <span class="keyword">null</span>;</span><br><span class="line">                evictionIterator = <span class="keyword">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">          	<span class="comment">//可以看到当timeBetweenEvictionRunsMillis参数大于0时，才会启动周期检测移除调度任务，</span></span><br><span class="line">            <span class="keyword">if</span> (delay &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                evictor = <span class="keyword">new</span> Evictor();</span><br><span class="line">                EvictionTimer.schedule(evictor, delay, delay);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  <span class="comment">//执行定期检测移除任务的线程数为1个，且检测周期为timeBetweenEvictionRunsMillis</span></span><br><span class="line">  <span class="function"><span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">schedule</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">            <span class="keyword">final</span> BaseGenericObjectPool&lt;?&gt;.Evictor task, <span class="keyword">final</span> <span class="keyword">long</span> delay, <span class="keyword">final</span> <span class="keyword">long</span> period)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">null</span> == executor) &#123;</span><br><span class="line">            executor = <span class="keyword">new</span> ScheduledThreadPoolExecutor(<span class="number">1</span>, <span class="keyword">new</span> EvictorThreadFactory());</span><br><span class="line">            executor.setRemoveOnCancelPolicy(<span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> ScheduledFuture&lt;?&gt; scheduledFuture =</span><br><span class="line">                executor.scheduleWithFixedDelay(task, delay, period, TimeUnit.MILLISECONDS);</span><br><span class="line">        task.setScheduledFuture(scheduledFuture);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Evictor执行的具体检测和移除逻辑：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Evictor</span> <span class="keyword">implements</span> <span class="title">Runnable</span> </span>&#123;</span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                <span class="comment">// 执行具体的移除任务</span></span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    evict();</span><br><span class="line">                &#125; <span class="keyword">catch</span>(<span class="keyword">final</span> Exception e) &#123;&#125; </span><br><span class="line">              		<span class="keyword">catch</span>(<span class="keyword">final</span> OutOfMemoryError oome) &#123;&#125;</span><br><span class="line">                <span class="comment">//重新创造连接，用于确保连接池中最小空闲连接</span></span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    ensureMinIdle();</span><br><span class="line">                &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e) &#123;&#125;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;&#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GenericObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">extends</span> <span class="title">BaseGenericObjectPool</span>&lt;<span class="title">T</span>&gt;</span></span><br><span class="line"><span class="class">        <span class="keyword">implements</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt;, <span class="title">GenericObjectPoolMXBean</span>, <span class="title">UsageTracking</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">evict</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (idleObjects.size() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            PooledObject&lt;T&gt; underTest = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">final</span> EvictionPolicy&lt;T&gt; evictionPolicy = getEvictionPolicy();</span><br><span class="line">            <span class="keyword">synchronized</span> (evictionLock) &#123;</span><br><span class="line">                <span class="keyword">final</span> EvictionConfig evictionConfig = <span class="keyword">new</span> EvictionConfig(</span><br><span class="line">                        getMinEvictableIdleTimeMillis(),</span><br><span class="line">                        getSoftMinEvictableIdleTimeMillis(),</span><br><span class="line">                        getMinIdle());</span><br><span class="line">                <span class="keyword">final</span> <span class="keyword">boolean</span> testWhileIdle = getTestWhileIdle();</span><br><span class="line">              	<span class="comment">//getNumTests()返回值即为numTestsPerEvictionRun配置参数</span></span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>, m = getNumTests(); i &lt; m; i++) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (!evictionIterator.hasNext()) &#123;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        underTest = evictionIterator.next();</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> NoSuchElementException nsee) &#123;</span><br><span class="line">                        i--;</span><br><span class="line">                        <span class="keyword">continue</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">										<span class="comment">//判断当前线程是否处于空闲状态，加锁保证一致性，若是会更新为移除中状态</span></span><br><span class="line">                    <span class="keyword">if</span> (!underTest.startEvictionTest()) &#123;</span><br><span class="line">                        i--;</span><br><span class="line">                        <span class="keyword">continue</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">boolean</span> evict;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                      	<span class="comment">//执行具体的移除规则判断逻辑，可以由使用方进行重写来自定义移除规则</span></span><br><span class="line">                        evict = evictionPolicy.evict(evictionConfig, underTest,</span><br><span class="line">                                idleObjects.size());</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Throwable t) &#123;</span><br><span class="line">                        evict = <span class="keyword">false</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">										<span class="comment">//如果检测到可以移除，此处进行具体的连接销毁操作</span></span><br><span class="line">                    <span class="keyword">if</span> (evict) &#123;</span><br><span class="line">                        destroy(underTest);</span><br><span class="line">                        destroyedByEvictorCount.incrementAndGet();</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                      	<span class="comment">//testWhileIdle即为配置参数testWhileIdle</span></span><br><span class="line">                      	<span class="comment">//当为true，会定期对空闲连接进行激活并检测有效性</span></span><br><span class="line">                        <span class="keyword">if</span> (testWhileIdle) &#123;</span><br><span class="line">                            <span class="keyword">try</span> &#123;</span><br><span class="line">                                factory.activateObject(underTest);</span><br><span class="line">                                <span class="keyword">if</span> (!factory.validateObject(underTest)) &#123;</span><br><span class="line">                                    destroy(underTest);</span><br><span class="line">                                    destroyedByEvictorCount.incrementAndGet();</span><br><span class="line">                                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                                    factory.passivateObject(underTest);</span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125; <span class="keyword">catch</span> (<span class="keyword">final</span> Exception e) &#123;</span><br><span class="line">                                destroy(underTest);</span><br><span class="line">                                destroyedByEvictorCount.incrementAndGet();</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                      	<span class="comment">//此处将更新连接的状态，由移除中状态更新为空闲状态</span></span><br><span class="line">                      	<span class="keyword">if</span> (!underTest.endEvictionTest(idleObjects)) &#123;&#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">final</span> AbandonedConfig ac = <span class="keyword">this</span>.abandonedConfig;</span><br><span class="line">        <span class="keyword">if</span> (ac != <span class="keyword">null</span> &amp;&amp; ac.getRemoveAbandonedOnMaintenance()) &#123;</span><br><span class="line">            removeAbandoned(ac);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实现evict()被重写的地方：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Pool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">implements</span> <span class="title">Closeable</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initPool</span><span class="params">(<span class="keyword">final</span> GenericObjectPoolConfig poolConfig, PooledObjectFactory&lt;T&gt; factory)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">  	    <span class="comment">//设置连接池中空闲连接的移除规则，通过重写EvictionPolicy类中evict方法实现</span></span><br><span class="line">        <span class="keyword">this</span>.internalPool.setEvictionPolicy(<span class="keyword">new</span> EvictionPolicy&lt;T&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">evict</span><span class="params">(EvictionConfig config, PooledObject&lt;T&gt; underTest, <span class="keyword">int</span> idleCount)</span> </span>&#123;</span><br><span class="line">								<span class="comment">//config.getMinIdle()即为配置参数minIdle</span></span><br><span class="line">                <span class="keyword">if</span> (idleCount &gt; config.getMinIdle() || config.getIdleEvictTime() &lt; underTest.getIdleTimeMillis()) &#123;</span><br><span class="line">                    idleCount = <span class="number">0</span>;</span><br><span class="line">                    Set&lt;DefaultPooledObjectInfo&gt; defaultPooledObjectInfos = internalPool.listAllObjects();</span><br><span class="line">                    <span class="comment">//计算连接池中空闲时间大于配置参数softMinEvictableIdleTimeMillis的空闲连接数</span></span><br><span class="line">                    <span class="keyword">for</span> (DefaultPooledObjectInfo defaultPooledObjectInfo : defaultPooledObjectInfos) &#123;</span><br><span class="line">                        <span class="keyword">long</span> idleTime = System.currentTimeMillis() - defaultPooledObjectInfo.getLastBorrowTime();</span><br><span class="line">                      	<span class="comment">//config.getIdleSoftEvictTime()即为配置参数softMinEvictableIdleTimeMillis</span></span><br><span class="line">                        <span class="keyword">if</span> (idleTime &gt; config.getIdleSoftEvictTime()) &#123;</span><br><span class="line">                            idleCount++;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                  	<span class="comment">//config.getIdleSoftEvictTime()即为配置参数softMinEvictableIdleTimeMillis</span></span><br><span class="line">                    <span class="comment">//config.getMinIdle()为配置参数minIdle</span></span><br><span class="line">                    <span class="keyword">if</span> (underTest.getIdleTimeMillis() &gt; config.getIdleSoftEvictTime()</span><br><span class="line">                            &amp;&amp; idleCount &gt; config.getMinIdle()) &#123;</span><br><span class="line">                        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                    <span class="comment">//config.getIdleEvictTime()即为配置参数minEvictableIdleTimeMillis</span></span><br><span class="line">                    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (underTest.getIdleTimeMillis() &gt; config.getIdleEvictTime()) &#123;</span><br><span class="line">                        <span class="keyword">if</span> (defaultPooledObjectInfos.size() == idleCount) &#123;</span><br><span class="line">                          	<span class="comment">//此时会将最小连接数minIdle减1</span></span><br><span class="line">                            internalPool.setMinIdle(internalPool.getMinIdle() - <span class="number">1</span>);</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="2-3-Pool"><a href="#2-3-Pool" class="headerlink" title="2.3 Pool"></a>2.3 Pool</h5><p>JedisPool实现Pool接口，底层是委托给GenericObjectPool对象进行实际借出和归还操作，并负责管理GenericObjectPool对象，以下为Pool的部分实现代码（注意代码为部分代码）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Pool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">implements</span> <span class="title">Closeable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> GenericObjectPool&lt;T&gt; internalPool;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Pool</span><span class="params">(<span class="keyword">final</span> GenericObjectPoolConfig poolConfig, PooledObjectFactory&lt;T&gt; factory, <span class="keyword">boolean</span> isAsync, ThreadPoolExecutor executorService)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//初始化jedis连接池</span></span><br><span class="line">      	initPool(poolConfig, factory);</span><br><span class="line">        <span class="keyword">this</span>.isAsync = isAsync;</span><br><span class="line">        <span class="keyword">this</span>.executorService = executorService;</span><br><span class="line">    &#125;</span><br><span class="line">  <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initPool</span><span class="params">(<span class="keyword">final</span> GenericObjectPoolConfig poolConfig, PooledObjectFactory&lt;T&gt; factory)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//省略部分代码</span></span><br><span class="line">      	<span class="comment">//创建池对象</span></span><br><span class="line">        <span class="keyword">this</span>.internalPool = <span class="keyword">new</span> GenericObjectPool&lt;T&gt;(factory, poolConfig,abandonedConfig);</span><br><span class="line">      	<span class="comment">//省略部分代码</span></span><br><span class="line">    &#125;</span><br><span class="line">		<span class="comment">//关闭jedis连接池</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        destroy();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//首先判断是否有空闲链接</span></span><br><span class="line">  	<span class="comment">//如果没有则先尝试异步创建池化对象，尽量减少在主线程中同步创建链接带来的超时过长问题（conn + so）</span></span><br><span class="line">  	<span class="comment">//异步创建失败，在切换同步创建池化对象</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> T <span class="title">getResource</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            T resource = internalPool.softBorrowIdleObject(Constants.AVG_SOCKET_READ_ROUND_TIME);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (resource != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span> resource;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (isAsync &amp;&amp; executorService != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="comment">// 限制8个异步创建</span></span><br><span class="line">                <span class="keyword">if</span> (asyncCreatingCount.get() &lt;= <span class="number">8</span> &amp;&amp; internalPool.shouldCreate()) &#123;</span><br><span class="line">                    <span class="keyword">try</span> &#123;</span><br><span class="line">                        executorService.submit(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                            <span class="meta">@Override</span></span><br><span class="line">                            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                                <span class="keyword">try</span> &#123;</span><br><span class="line">                                    asyncCreatingCount.incrementAndGet();</span><br><span class="line">                                    internalPool.addObject();</span><br><span class="line">                                &#125; <span class="keyword">catch</span> (Exception ignore) &#123;</span><br><span class="line">                                    <span class="comment">// ignore</span></span><br><span class="line">                                &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                                    asyncCreatingCount.decrementAndGet();</span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;);</span><br><span class="line">                    &#125; <span class="keyword">catch</span> (RejectedExecutionException ignore) &#123;</span><br><span class="line">												<span class="comment">//异步创建失败，改为同步创建</span></span><br><span class="line">                        <span class="keyword">return</span> internalPool.borrowObject(waitResourceTime);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> internalPool.borrowIdleObject(waitResourceTime);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">return</span> internalPool.borrowObject();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (JedisConnectionException e) &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">		<span class="comment">//返回资源对象</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">returnResourceObject</span><span class="params">(<span class="keyword">final</span> T resource)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (resource == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            internalPool.returnObject(resource);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (JedisException e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> e;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> JedisConnectionException(hostAndPort.getHost(), hostAndPort.getPort(),</span><br><span class="line">                    <span class="string">"Could not return the resource to the pool"</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">		<span class="comment">//由Jedis中close函数进行调用来关闭失败资源</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnBrokenResource</span><span class="params">(<span class="keyword">final</span> T resource)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (resource != <span class="keyword">null</span>) &#123;</span><br><span class="line">            returnBrokenResourceObject(resource);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">		<span class="comment">//由Jedis中close函数进行调用来归还资源</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">returnResource</span><span class="params">(<span class="keyword">final</span> T resource)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (resource != <span class="keyword">null</span>) &#123;</span><br><span class="line">            returnResourceObject(resource);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">		<span class="comment">//关闭对象池</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">closeInternalPool</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            internalPool.close();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (JedisException e) &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Jedis作为池化对象，其中包含了Jedis连接池对象的引用，即dataSource属性，当调用Jedis.close()方法时，会委托dataSource属性去归还当前的连接资源，以下为对应代码（注意代码为部分代码）：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Jedis</span> <span class="keyword">extends</span> <span class="title">BinaryJedis</span> <span class="keyword">implements</span> <span class="title">JedisCommands</span>, <span class="title">MultiKeyCommands</span>,</span></span><br><span class="line"><span class="class">        <span class="title">AdvancedJedisCommands</span>, <span class="title">ScriptingCommands</span>, <span class="title">ClusterCommands</span>, <span class="title">SentinelCommands</span> </span>&#123;</span><br><span class="line">    <span class="keyword">protected</span> Pool&lt;Jedis&gt; dataSource = <span class="keyword">null</span>;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (dataSource != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (client.isBroken()) &#123;</span><br><span class="line">                <span class="keyword">this</span>.dataSource.returnBrokenResource(<span class="keyword">this</span>);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">this</span>.dataSource.returnResource(<span class="keyword">this</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            client.close();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>JedisPool对象核心配置参数（包括GenericObjectPool的核心配置参数）</p>
+<table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>connectionTimeout</td>
+<td>创建连接时的最大等待时间，默认为2000ms</td>
+</tr>
+<tr>
+<td>soTimeout</td>
+<td>读取数据时最大阻塞时间，默认为2000ms</td>
+</tr>
+</tbody></table>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://jackliwork.github.io/blog/2020/07/10/jedis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" title="jedis连接池" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/07/10/jedis%E8%BF%9E%E6%8E%A5%E6%B1%A0/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/blog/2020/07/12/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/" title="Redis持久化机制"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/blog/2020/07/10/tcp:ip%E5%AD%A6%E4%B9%A0/" title="tcp:ip学习"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+<script src="/blog/js/plugin.min.js"></script>
+<script src="/blog/js/application.js"></script>
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/blog/',
+        CONTENT_URL: '/blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/blog/js/insight.js"></script>
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
