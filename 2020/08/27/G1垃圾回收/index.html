@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>G1垃圾回收 | Hexo</title>
+  <meta name="description" content="G1算法简介G1算法之前，CMS等垃圾回收算法都是将堆分为一个老年代和一个年轻代，这样每次都需要对年轻代或年老代整个区域都进行垃圾回收，这样就不能很好控制垃圾回收停顿时间。为了解决以上问题，G1算法采用将堆分为若干个区域，每个区域在在被使用时会标记为不同的类型（E表示Eden区域，S表示Survivor区域，O表示Old区域，H表示Humongous区域，其中E和S属于年轻代，O和H属于老年代，H">
+<meta name="keywords" content="java,java垃圾回收">
+<meta property="og:type" content="article">
+<meta property="og:title" content="G1垃圾回收">
+<meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;27&#x2F;G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="G1算法简介G1算法之前，CMS等垃圾回收算法都是将堆分为一个老年代和一个年轻代，这样每次都需要对年轻代或年老代整个区域都进行垃圾回收，这样就不能很好控制垃圾回收停顿时间。为了解决以上问题，G1算法采用将堆分为若干个区域，每个区域在在被使用时会标记为不同的类型（E表示Eden区域，S表示Survivor区域，O表示Old区域，H表示Humongous区域，其中E和S属于年轻代，O和H属于老年代，H">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;27&#x2F;images&#x2F;G1垃圾回收&#x2F;image-20200902200743272.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;27&#x2F;images&#x2F;G1垃圾回收&#x2F;image-20200901102351838.png">
+<meta property="og:updated_time" content="2020-09-03T03:19:17.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;27&#x2F;images&#x2F;G1垃圾回收&#x2F;image-20200902200743272.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://jackliwork.github.io/blog/2020/08/27/G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+  
+  
+  
+</head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/blog/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java%E5%AD%A6%E4%B9%A0/">Java学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Kafka%E5%AD%A6%E4%B9%A0/">Kafka学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AD%A6%E4%B9%A0/">java学习</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/AQS/" rel="tag">AQS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/ConcurrentHashMap/" rel="tag">ConcurrentHashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/HashMap/" rel="tag">HashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Java/" rel="tag">Java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka/" rel="tag">Kafka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" rel="tag">Kafka事务</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Notification/" rel="tag">Notification</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Raft/" rel="tag">Raft</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">10</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" rel="tag">Redis事件</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" rel="tag">Redis命令执行过程</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" rel="tag">Redis哨兵</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" rel="tag">Redis复制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" rel="tag">Redis持久化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" rel="tag">Redis简介</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" rel="tag">Redis集群</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java/" rel="tag">java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="tag">java垃圾回收</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" rel="tag">java锁学习</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" rel="tag">mysql死锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E9%94%81/" rel="tag">mysql锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/synchronized/" rel="tag">synchronized</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" rel="tag">zookeeper基本概念</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">zookeeper序列化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">zookeeper环境搭建</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" rel="tag">分布式一致性算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="tag">分库分表</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" rel="tag">区间求和</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" rel="tag">垂直拆分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" rel="tag">应用容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" rel="tag">开发环境</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" rel="tag">数据库扩展性设计</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="tag">线上常见问题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" rel="tag">线段树</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/blog/tags/AQS/" style="font-size: 13px;">AQS</a> <a href="/blog/tags/ConcurrentHashMap/" style="font-size: 13px;">ConcurrentHashMap</a> <a href="/blog/tags/HashMap/" style="font-size: 13px;">HashMap</a> <a href="/blog/tags/Java/" style="font-size: 13px;">Java</a> <a href="/blog/tags/Jedis/" style="font-size: 13px;">Jedis</a> <a href="/blog/tags/Kafka/" style="font-size: 13px;">Kafka</a> <a href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" style="font-size: 13px;">Kafka事务</a> <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/Notification/" style="font-size: 13px;">Notification</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Raft/" style="font-size: 13px;">Raft</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" style="font-size: 13px;">Redis事件</a> <a href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" style="font-size: 13px;">Redis命令执行过程</a> <a href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" style="font-size: 13px;">Redis哨兵</a> <a href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" style="font-size: 13px;">Redis复制</a> <a href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" style="font-size: 13px;">Redis持久化</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" style="font-size: 13px;">Redis简介</a> <a href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" style="font-size: 13px;">Redis连接池</a> <a href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" style="font-size: 13px;">Redis集群</a> <a href="/blog/tags/docker/" style="font-size: 13px;">docker</a> <a href="/blog/tags/java/" style="font-size: 13px;">java</a> <a href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13px;">java垃圾回收</a> <a href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" style="font-size: 13.5px;">java锁学习</a> <a href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" style="font-size: 13px;">mysql死锁</a> <a href="/blog/tags/mysql%E9%94%81/" style="font-size: 13px;">mysql锁</a> <a href="/blog/tags/synchronized/" style="font-size: 13px;">synchronized</a> <a href="/blog/tags/zookeeper/" style="font-size: 13.5px;">zookeeper</a> <a href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" style="font-size: 13px;">zookeeper基本概念</a> <a href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 13px;">zookeeper序列化</a> <a href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 13px;">zookeeper环境搭建</a> <a href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" style="font-size: 13px;">分布式一致性算法</a> <a href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size: 13px;">分库分表</a> <a href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" style="font-size: 13px;">区间求和</a> <a href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" style="font-size: 13px;">垂直拆分</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">应用容器</a> <a href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" style="font-size: 13px;">开发环境</a> <a href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" style="font-size: 13px;">数据库扩展性设计</a> <a href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" style="font-size: 13px;">线上常见问题</a> <a href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" style="font-size: 13px;">线段树</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/09/">九月 2020</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/08/">八月 2020</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">18</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E5%BB%BA%E7%AB%8B/" class="title">个人博客建立</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:41:57.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" class="title">ZooKeeper的Notification类</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:35:45.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="title">ZooKeeper序列化与反序列化</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:05:30.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" class="title">zookeeper基本概念</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:58:32.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E6%BA%90%E7%A0%81%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="title">zookeeper源码环境搭建</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:57:06.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#G1算法简介"><span class="toc-number">1.</span> <span class="toc-text">G1算法简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Java对象分配策略"><span class="toc-number">2.</span> <span class="toc-text">Java对象分配策略</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Young-GC"><span class="toc-number">3.</span> <span class="toc-text">Young GC</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Mixed-GC"><span class="toc-number">4.</span> <span class="toc-text">Mixed GC</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#全局并发标记阶段（global-concurrent-marking）"><span class="toc-number">4.1.</span> <span class="toc-text">全局并发标记阶段（global concurrent marking）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#混合收集阶段："><span class="toc-number">4.2.</span> <span class="toc-text">混合收集阶段：</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#转移失败"><span class="toc-number">4.3.</span> <span class="toc-text">转移失败</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#G1的最佳实践"><span class="toc-number">5.</span> <span class="toc-text">G1的最佳实践</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#G1的相关参数"><span class="toc-number">6.</span> <span class="toc-text">G1的相关参数</span></a></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-G1垃圾回收" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      G1垃圾回收
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/blog/2020/08/27/G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" class="article-date">
+	  <time datetime="2020-08-27T13:36:47.000Z" itemprop="datePublished">2020-08-27</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/blog/categories/java%E5%AD%A6%E4%B9%A0/">java学习</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/blog/tags/java/" rel="tag">java</a>, <a class="article-tag-link" href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="tag">java垃圾回收</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/blog/2020/08/27/G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="G1算法简介"><a href="#G1算法简介" class="headerlink" title="G1算法简介"></a>G1算法简介</h3><p>G1算法之前，CMS等垃圾回收算法都是将堆分为一个老年代和一个年轻代，这样每次都需要对年轻代或年老代整个区域都进行垃圾回收，这样就不能很好控制垃圾回收停顿时间。为了解决以上问题，G1算法采用将堆分为若干个区域，每个区域在在被使用时会标记为不同的类型（E表示Eden区域，S表示Survivor区域，O表示Old区域，H表示Humongous区域，其中E和S属于年轻代，O和H属于老年代，H为专门用于存放占用空间大于Region区域容量50%以上对象）。一个Region属于老年代还是新生代是动态的，在使用时候才会被标记，因此初始堆中的Region是没有标记的，并且在垃圾回收后完全被释放的Region也会被清除标记。当需要进行垃圾回收时，通过选取回收性价比高（垃圾占比高）的区域来到达控制垃圾回收停顿时间。</p>
+<p>G1在标记过程中，使用三色标记法来避免重复扫描。开始前所有对象都为白色，当对象首次被扫描时将会被标记为灰色。<br>1、黑色：表示该对象为根对象，或者该对象的所有子对象都被扫描过（即该对象所有field都被标记完了）<br>2、灰色：对象本身处于扫描中，但该对象中的子对象没有被扫描完（即它的field还没有被标记完）<br>3、白色：未被扫描对象，当标记完成后，最终为白色的表示不可达对象，即垃圾对象</p>
+<h3 id="Java对象分配策略"><a href="#Java对象分配策略" class="headerlink" title="Java对象分配策略"></a>Java对象分配策略</h3><p>我们知道，分配新对象在Eden区域中进行，当多个业务线程都去分配新对象时，不可避免存在竞争，因此为了减少多线程在分配对象时的竞争，java采用为每个线程分配一个私有的本地分配缓冲区（TLAB，位于Eden区，会参与Eden区的垃圾回收，默认为Eden空间的1%）的策略。当需要分配对象时，会先在当前线程的TLAB区域进行分配，由于TLAB区域为线程私有区域，因此只有当前线程可以在此区域内分配对象，但是注意其他线程可以读取此区域的对象数据。同时由于TLAB比较小，因此当TLAB的剩余空间不足以分配新对象时，会创建新的TLAB并进行空间分配或直接在Eden区的共享内存为此对象分配空间，此时分配的Region被标记为E；当Eden区也不足以分配对象时，会直接在老年代中分配空间，此时标记的对象被标记为O；注意当遇到大对象时，也会直接在老年代中分配空间，此时分配的Region被标记为H。Region的大小可以通过参数-XX:G1HeapRegionSize设定，取值范围从1M到32M，且是2的指数。每个 Region 实际又能被细分为最小为512字节的heap chunk，称为 card。每个card被它起始地址构所标记，成为card id，在整个 Heap中唯一，通过card id可以直接映射到对应card。</p>
+<h3 id="Young-GC"><a href="#Young-GC" class="headerlink" title="Young GC"></a>Young GC</h3><p>新生对象都是在属于Eden的一个Region上进行分配，当此Region满了之后会从空闲region中再取一个新Region并标记为 Eden用于分配新生对象，直到标记为Eden的Region数达到上限，此时会触发young GC。young GC采用复制算法和可达性性分析法，在young GC整个处理期间都需要STW，支持并行处理。注意每次YGC都会遍历并回收全部被标记为Eden的Region，进行回收后会清除Eden标记，使这些Region重新变为无标记Region。同时在对Eden区域中对存活象进行复制操作时，也需要先获取一个新的Region并标记为Survivor后，再向此Survivor区域复制对象。</p>
+<p><strong>分析1</strong>：我们知道在处理老年代对象到年轻代对象的跨代引用时，如果从GC Roots开始扫描，那么不仅要扫描年轻代，还需要扫描整个老年代，会造成Young GC停顿时间过长。为此G1维护了一个从非收集空间指向收集空间的指针集合的RSet数据结构，对于Young GC来说，非收集空间指的是老年代，收集空间指的年轻代，因此RSet数据结构保存从老年代-&gt;年轻代的跨代指针。这样通过将每个年轻代Region对应的RSet作为root进行扫描就可以避免扫描整个老年代。GC Roots包括方法区中的静态属性引用和常量引用、虚拟机栈引用、本地方法栈引用。</p>
+<p><strong>分析2</strong>：我们知道不同Region被引用的数量是不同的，有的Region被引用的数量多，有的Region则被引用的数量少。当一个Region被引用数量特别多时，那么该Region对应的RSet中记录的引用数量就会特别多，造成占用内存较多。为了解决此问题，G1算法根据一个Region被引用的数量进行分级，不同分级记录采用不同粒度的记录方式，主要分为三级：sparse、fine和coarse。</p>
+<ul>
+<li>当RSet处在sparse级别，每个年轻代Region对应的RSet中，存储的为指向此Region的filed引用在老年代Region中所属card的card id集合。</li>
+<li>当RSet处在sparse级别，每个年轻代Region对应的RSet中，存储的为指向此区域的引用所在Region的Card位图集合，Card位图中每一位对应指向此区域的引用所在Region中一个card。</li>
+<li>当RSet处在sparse级别，每个年轻代Region对应的RSet中，存储的为指向此区域的引用所在Region的位图，此时需要通过扫描所有被引用的Region才能找出所有引用。</li>
+</ul>
+<p><strong>分析3</strong>：我们知道当代码执行赋值操作时，会改变Region间的引用关系，相关Region对应的Rset也需要改变，因此需要感知赋值语句来更新相关Rset。JVM通过在每个赋值语句后增加post-write barrier机制，来执行额外操作更新Rset，示意图如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">oopfieldstore</span><span class="params">(oop field, oop newvalue)</span> </span>&#123;</span><br><span class="line">  <span class="comment">//记录旧值</span></span><br><span class="line">  prewritebarrier(field);</span><br><span class="line">  field = newvalue;</span><br><span class="line">  postwritebarrier(field, new_value); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于赋值语句在应用线程中执行，如果将Rset的更新操作都放在应用线程中执行，就会影响应用系统的性能。JVM通过异步方式来处理，即将耗时的Rset更新操作放在GC refinement threads线程中去执行，应用线程与GC refinement threads线程间通过dirty card queue共享队列进行通信。在postwritebarrier函数中仅执行如下操作：</p>
+<ol>
+<li><p>先判断filed指针本身是否来自老年代和new_value指向对象是否来自年轻代</p>
+</li>
+<li><p>如果filed指针本身来自老年代且new_value指向的对象来自年轻代，则将filed指针所在card和field指针指向的空间所在Region等信息加入dirty card queue中</p>
+</li>
+</ol>
+<p>GC refinement threads线程会不断去不断从dirty card queue共享队列中顺序解析出对应信息并完成RSet更新工作，包括RSet粒度升级等工作。GC refinement threads是持续运行的，并且线程数会随着dirty card queue的队列长度进行动态调节。由于是异步消费，那么就会存在GC refinement threads消费速度小于dirty card queue增长速度，dirty card queue会出现积压，此时应用线程在往dirty card queue中增加新的dirty card时，也会从dirty card queue中消费一条dirty card，此时应用的性能必定会受到影响，因此要避免这种状况发生。</p>
+<h3 id="Mixed-GC"><a href="#Mixed-GC" class="headerlink" title="Mixed GC"></a>Mixed GC</h3><p>当整个堆内存（包括老年代和新生代）使用率超过设置IHOP值（默认是45%，通过-XX:InitiatingHeapOccupancyPercent进行设置）后，Mixed GC回收过程会被启动。具体检测堆内存使用情况的时机是年轻代回收之后或者houmongous对象分配之后。Mixed GC采用增量式垃圾回收策略，处理过程可以分为两个阶段：全局并发标记阶段和混合收集阶段，注意一个并发标记后可以有多个清理阶段。由于Mixed GC采用复制算法，因此解决了CMS中存在的内存碎片问题。</p>
+<h4 id="全局并发标记阶段（global-concurrent-marking）"><a href="#全局并发标记阶段（global-concurrent-marking）" class="headerlink" title="全局并发标记阶段（global concurrent marking）"></a>全局并发标记阶段（global concurrent marking）</h4><p><strong>分析1</strong>：我们知道不管是Young GC还是Mixed GC在通过可达性分析策略标记存活对象时，都需要STW并扫描GC Roots，且扫描的GC Roots相同。如果Mixed GC能够在Young GC通过GC Roots扫描其直接引用对象并判断分代时，也将属于老年代的直接引用进行记录，Mixed GC就可以少一次STW，也就是Mixed GC的初始标记阶段。因此当整个堆内存使用率达到IHOP值时，Mixed GC并不会立即发起，而是等待下一次年轻代收集，利用年轻代收集的STW时间段，完成初始标记，这种方式称为借道(Piggybacking)。</p>
+<p><strong>分析2</strong>：我们知道Mixed GC在并发标记过程中，应用程序会与GC线程并发工作，而应用程序会改变已标记对象间的引用关系，若不进行额外标记，则会造成漏标或错标，错标会产生浮动垃圾，漏标则会导致在随后的回收阶段使正在使用的对象被回收，影响应用程序的正确运行。为了解决此问题，Mixed GC采用SATB write barrier中pre-write barrier技术来解决漏标问题。同时为了尽量减少pre-write barrier操作对业务线程性能的影响，业务线程仅将涉及到的赋值前的值信息（log）添加到自己的SATBMarkQueue队列里，当SATBMarkQueue队列满了之后，SATBMarkQueue队列就会被加到全局的SATB队列集合SATBMarkQueueSet中，同时给当前业务线程分配一个新的SATBMarkQueue队列。并发标记线程会定期检查SATBMarkQueueSet集合的大小。当SATBMarkQueueSet集合中数量超过一定阈值后，并发标记线程就会处理集合里的所有队列，即并发标记线程将队列里记录的每个oop为根，通过递归遍历标记。</p>
+<p>white对象在并发标记阶段会被漏标的充分必要条件（满足其中一个即可）为：<br>1、业务线程插入了一个从black对象到white对象的引用，如红色实线所示<br>2、业务线程删除了所有从grey对象到white对象的直接或者间接引用，如红色虚线所示</p>
+<img src="../images/G1垃圾回收/image-20200902200743272.png" alt="image-20200902200743272" style="zoom:50%;">
+
+<p>防止漏标的方法就是破坏上述充分必要条件：</p>
+<p>1、CMS采用利用post write barrier将所有新插入的引用关系都记录下来，从而破坏了第一个充分必要条件<br>2、G1采用利用pre write barrier所有即将被删除的引用关系的旧引用记录下来，从而破坏了第二个充分必要条件</p>
+<p><strong>分析3</strong>：我们知道业务线程在运行过程中会不断产生新的对象，但pre write barrier并不能处理分配新对象的情况，此部分对象也需要被标记。为了解决这个问题，G1采用快照的方式来保证Mixed GC开始后新增的对象不会被回收。同时由于Mixed GC支持增量式标记，因此需要维持两个指针prevTAMS和nextTAMS，在每次Mixed GC初始标记的结束阶段（此时会STW），会更新nextTAMS为top，即[prevTAMS, nextTAMS)为本轮需要标记的区域；在Mixed GC的并发标记结束阶段，会更新prevTAMS为nextTAMS，表示当前轮的并发标记结束。如下图：</p>
+<img src="../images/G1垃圾回收/image-20200901102351838.png" alt="image-20200901102351838" style="zoom:50%;">
+
+<ul>
+<li>[bottom, prevTAMS): 此部分在n-1轮被标记，对象存活信息存储在prevBitmap中</li>
+<li>[prevTAMS, nextTAMS): 此部分在第n轮被标记，对象存活信息存储在nextBitmap中，直到Mixed GC的并发标记结束才可以使用，此时nextBitmap也就变为prevBitmap</li>
+<li>[nextTAMS, top): 此部分对象表示在第n轮进行并发标记过程中产生的新对象，因此在第n轮垃圾回收过程中是隐式存活的</li>
+<li>[top, end): 此部分表示当前Region未使用的部分</li>
+</ul>
+<p><strong>结论</strong>：分析中使用的pre write barrier技术和快照技术，合称为G1算法的SATB，SATB保证了G1算法正确性，但是会产生浮动垃圾：</p>
+<ol>
+<li>所有在 concurrent marking 阶段开始时活的对象，一定会被标记和递归遍历对象中引用（注意开始时存活的对象后来变为垃圾，也会被标记）；</li>
+<li>所有在 concurrent marking 过程中产生的新对象一定被标记（注意新对象后来变为垃圾，也会被标记）;</li>
+</ol>
+<p><strong>并发标记的具体步骤</strong>：</p>
+<p>(1) Initial Mark初始标记 STW</p>
+<p>首先暂停所有业务线程，即STW；接着标记GC ROOTS直接可达的对象，并将它们的属性字段压入扫描栈中等待后续扫描。G1使用外部的bitmap来记录标记信息。由分析1可知此阶段会借助YGC的STW实现，但是与YGC在逻辑上相互独立。</p>
+<p>(2)Root Region Scanning 根区域扫描 并发扫描</p>
+<p>根区域扫描是从Survior区的对象出发，标记此对象属性中引用的老年代对象，并把这些老年代对象压入扫描栈中等待后续扫描。由于此阶段从Survior区开始标记，因此Root Region Scanning必须在下一次YGC开始前完成。</p>
+<p>(3)Concurrent Marking 并发标记</p>
+<p>不断从扫描栈取出引用，并递归扫描引用对象里的属性，知道直到扫描栈为空。过程中还会递归扫描SATB write barrier所记录下的引用。注意Concurrent Marking 可以被YGC中断</p>
+<p>(4)Remark 最终标记 STW</p>
+<p>STW操作。在完成并发标记后，每个Java线程还会有一些剩下的SATB write barrier记录的引用尚未处理。这个阶段就负责把剩下的引用处理完。同时这个阶段也会对弱引用进行处理。注意这个暂停与CMS的remark有一个本质上的区别，那就是这个暂停只需要扫描SATBMarkQueueSet中dirty card，而CMS的remark需要重新扫描dirty card以及整个根集合（包括所有年轻代对象），因而CMS remark有可能会非常慢。注意G1 Mixed GC的最终标记和CMS的重新扫描都是采用三色标记法，即遇到黑色对象就停止递归扫描，因此其他阶段对存活对象的标记越完整，最终标记和重标记阶段花费的时间越短。</p>
+<p>(5)清理阶段 需要STW</p>
+<p>经过标记之后，collector就知道哪些Region有存活的对象，首先清点出有存活对象的Region和没有存活对象的Region，并更新RSet。对于有存活对象的Region，G1会根据统计预测模型找性价比高的若干Region，组成的集合就叫做CSet。对于那些完全可回收的Region(没有存活对象)，则收集起来加入到可分配Region队列实现直接回收。在Mixed GC中的CSet是选定所有年轻代中的region，外加根据统计预测模型得出满足暂停时间的若干年老代region。（在YGC中的Cset是选定所有年轻代中的region，通过控制young gen的region个数来控制young GC的开销）</p>
+<h4 id="混合收集阶段："><a href="#混合收集阶段：" class="headerlink" title="混合收集阶段："></a>混合收集阶段：</h4><p>为了满足停顿预测模型即暂停时间，G1可能会产生连续多次的混合收集（默认8次，通过-XX:G1MixedGCCountTarget设置），并与应用线程交替执行回收，G1会优先回收垃圾多的内存区域。对于要回收的分区，会将该分区中存活的数据拷贝到另一个分区。在一次混合收集中可以回收的分区数取决于三个因素：（1）有多少个分区被认定为垃圾分区，配置参数<br>-XX:G1MixedGCLiveThresholdPercent=n表示如果一个分区中的存活对象比例超过n，就不会被挑选为垃圾分区（2）可以通过<code>-XX:G1MixedGCCountTarget=n</code>参数（默认是8）设置在一个并发周期中最多经历几次混合收集周期，如果减小这个值，可以增加每次混合收集收集的分区数，但是可能会导致停顿时间过长；（3）通过MaxGCPauseMillis`参数可以设置期望的GC停顿的时间，默认值是200ms，在混合收集周期内的停顿时间是向上规整的，如果实际运行时间比这个参数小，那么G1就能收集更多的分区。</p>
+<h4 id="转移失败"><a href="#转移失败" class="headerlink" title="转移失败"></a>转移失败</h4><p>当G1垃圾回收发生转移失败时，便会执行Serial GC（全程STW），转移失败的条件如下：</p>
+<ul>
+<li>从Eden区转移存活对象到Survivor区或从Survivor区向Old区晋升对象时，无法在老年代找到可用的空闲分区</li>
+<li>从Old区复制存活对象到空闲Old区时，无法找到可用的空闲Old区</li>
+<li>分配巨型对象时在H区无法找到足够的连续空间</li>
+</ul>
+<p>避免Evacuation Failure，考虑以下选项。</p>
+<ul>
+<li><p>增大heap堆大小</p>
+</li>
+<li><p>如果从Eden区转移存活对象到Survivor区有问题，可以增大<strong><code>-XX:G1ReservePercent=n</code></strong>参数，默认是10，G1会预留为Survivor预留更多空间</p>
+</li>
+<li><p>增大并行标记的线程数，使用<strong><code>-XX:ConcGCThreads=n</code></strong>选项，减少并发标记时间以更快进入清理阶段</p>
+</li>
+</ul>
+<h3 id="G1的最佳实践"><a href="#G1的最佳实践" class="headerlink" title="G1的最佳实践"></a>G1的最佳实践</h3><ol>
+<li>关键参数项</li>
+</ol>
+<ul>
+<li><code>-XX:+UseG1GC</code>，告诉JVM使用G1垃圾收集器</li>
+<li><code>-XX:MaxGCPauseMillis=200</code>，设置GC暂停时间的目标最大值，JVM会尽力达到这个目标</li>
+<li><code>-XX:INitiatingHeapOccupancyPercent=45</code>，设置触发Mixed GC时整个堆的使用率</li>
+</ul>
+<ol start="2">
+<li>最佳实践</li>
+</ol>
+<ul>
+<li>不要设置年轻代和老年代的大小，通过<code>-Xmn</code>显式设置年轻代的大小，会干扰G1收集器的默认行为：<ul>
+<li>G1不再以设定的暂停时间为目标</li>
+<li>G1不能按需扩大或缩小年轻代的大小</li>
+</ul>
+</li>
+</ul>
+<h3 id="G1的相关参数"><a href="#G1的相关参数" class="headerlink" title="G1的相关参数"></a>G1的相关参数</h3><table>
+<thead>
+<tr>
+<th>参数名</th>
+<th>含义</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>+UseG1GC</td>
+<td>使用G1收集器</td>
+<td>JDK1.8需显式指定</td>
+</tr>
+<tr>
+<td>MaxGCPauseMillis</td>
+<td>设置一个期望的最大GC暂停时间</td>
+<td>200</td>
+</tr>
+<tr>
+<td>InitiatingHeapOccupancyPercent</td>
+<td>触发mixed gc时整个堆空间使用百分比</td>
+<td>45</td>
+</tr>
+<tr>
+<td>NewRatio</td>
+<td>新生代和老年代的比例</td>
+<td>2</td>
+</tr>
+<tr>
+<td>SurvivorRatio</td>
+<td>Eden空间和Survivor空间的比例</td>
+<td>8</td>
+</tr>
+<tr>
+<td>MaxTenuringThreshold</td>
+<td>年轻代对象晋升老年代时经历young GC的次数</td>
+<td>G1中是15</td>
+</tr>
+<tr>
+<td>ParallelGCThreads</td>
+<td>STW时，并行执行垃圾收集动作的线程数</td>
+<td>与平台有关</td>
+</tr>
+<tr>
+<td>ConcGCThreads</td>
+<td>并发标记阶段，并发执行标记的线程数</td>
+<td>ParallelGCThreads/4</td>
+</tr>
+<tr>
+<td>G1ReservePercent</td>
+<td>空闲空间的预留内存百分比</td>
+<td>10</td>
+</tr>
+<tr>
+<td>G1HeapRegionSize</td>
+<td>一个Region区的大小，范围是1MB到32MB之间</td>
+<td>(整堆大小/2000)MB</td>
+</tr>
+<tr>
+<td>G1HeapWastePercent</td>
+<td>当堆空间中垃圾的占比小于此值时，停止Mixed GC</td>
+<td>JDK1.8是5</td>
+</tr>
+<tr>
+<td>G1MixedGCCountTarget</td>
+<td>Mixed GC周期中需要执行Mixed GC清理的次数</td>
+<td>8</td>
+</tr>
+<tr>
+<td>G1MixedGCLiveThresholdPercent</td>
+<td>分区能够进行垃圾回收时存活对象的最大占用百分值</td>
+<td>1.7是65，JDK1.8是85</td>
+</tr>
+</tbody></table>
+<p>参考资料：<br><a href="https://www.jianshu.com/p/8be816cbb5ed" target="_blank" rel="noopener">浅析java中的TLAB</a><br><a href="https://juejin.im/post/6844903991952801806" target="_blank" rel="noopener">JVM stop the world</a><br><a href="https://blog.csdn.net/xhh198781/article/details/42213847" target="_blank" rel="noopener">HotSpot根对象</a><br><a href="https://blog.csdn.net/a860MHz/article/details/97276211" target="_blank" rel="noopener">JVM G1 源码分析（三）- Remembered Sets</a><br><a href="https://zhuanlan.zhihu.com/p/54048685" target="_blank" rel="noopener">可能是最全面的G1学习笔记</a><br><a href="https://ylgrgyq.github.io/2016/07/03/garbage-first-collector-understanding/" target="_blank" rel="noopener">Garbage First Collector 理解</a><br><a href="https://docs.oracle.com/javase/8/docs/technotes/guides/vm/gctuning/g1_gc_tuning.html" target="_blank" rel="noopener">Garbage-First Garbage Collector Tuning</a><br><a href="https://hllvm-group.iteye.com/group/topic/44529" target="_blank" rel="noopener">关于incremental update与SATB的一点理解</a></p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://jackliwork.github.io/blog/2020/08/27/G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" title="G1垃圾回收" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/08/27/G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/blog/2020/09/04/java%E7%9A%84Map%E5%AD%A6%E4%B9%A0/" title="java的Map学习"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/blog/2020/08/20/Kafka%E4%BA%8B%E5%8A%A1/" title="Kafka事务"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+<script src="/blog/js/plugin.min.js"></script>
+<script src="/blog/js/application.js"></script>
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/blog/',
+        CONTENT_URL: '/blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/blog/js/insight.js"></script>
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>

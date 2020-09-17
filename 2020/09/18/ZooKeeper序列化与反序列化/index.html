@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>ZooKeeper序列化与反序列化 | Hexo</title>
+  <meta name="description" content="1、序列化和反序列框架 （1）、Record接口，需要实现的序列化和反序列化的对象都要实现此接口，与jdk中的Serializable作用类似 1234public interface Record &amp;#123;    void serialize(OutputArchive archive, String tag) throws IOException;    void deserialize(">
+<meta name="keywords" content="zookeeper序列化">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ZooKeeper序列化与反序列化">
+<meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;09&#x2F;18&#x2F;ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1、序列化和反序列框架 （1）、Record接口，需要实现的序列化和反序列化的对象都要实现此接口，与jdk中的Serializable作用类似 1234public interface Record &amp;#123;    void serialize(OutputArchive archive, String tag) throws IOException;    void deserialize(">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;images&#x2F;zookeeper%E5%BA%8F%E5%88%97%E5%8C%96%E6%8E%A5%E5%8F%A3%E5%85%B3%E7%B3%BB%E5%9B%BE.png">
+<meta property="og:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;images&#x2F;zookeeper%E5%BA%8F%E5%88%97%E5%8C%96%E7%B1%BB%E5%BC%95%E7%94%A8%E5%85%B3%E7%B3%BB%E5%9B%BE.png">
+<meta property="og:updated_time" content="2020-09-17T16:05:50.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;images&#x2F;zookeeper%E5%BA%8F%E5%88%97%E5%8C%96%E6%8E%A5%E5%8F%A3%E5%85%B3%E7%B3%BB%E5%9B%BE.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://jackliwork.github.io/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+  
+  
+  
+</head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/blog/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java%E5%AD%A6%E4%B9%A0/">Java学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Kafka%E5%AD%A6%E4%B9%A0/">Kafka学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AD%A6%E4%B9%A0/">java学习</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/AQS/" rel="tag">AQS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/ConcurrentHashMap/" rel="tag">ConcurrentHashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/HashMap/" rel="tag">HashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Java/" rel="tag">Java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka/" rel="tag">Kafka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" rel="tag">Kafka事务</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Notification/" rel="tag">Notification</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Raft/" rel="tag">Raft</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">10</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" rel="tag">Redis事件</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" rel="tag">Redis命令执行过程</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" rel="tag">Redis哨兵</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" rel="tag">Redis复制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" rel="tag">Redis持久化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" rel="tag">Redis简介</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" rel="tag">Redis集群</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java/" rel="tag">java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="tag">java垃圾回收</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" rel="tag">java锁学习</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" rel="tag">mysql死锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E9%94%81/" rel="tag">mysql锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/synchronized/" rel="tag">synchronized</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" rel="tag">zookeeper基本概念</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">zookeeper序列化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">zookeeper环境搭建</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" rel="tag">分布式一致性算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="tag">分库分表</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" rel="tag">区间求和</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" rel="tag">垂直拆分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" rel="tag">应用容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" rel="tag">开发环境</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" rel="tag">数据库扩展性设计</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="tag">线上常见问题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" rel="tag">线段树</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/blog/tags/AQS/" style="font-size: 13px;">AQS</a> <a href="/blog/tags/ConcurrentHashMap/" style="font-size: 13px;">ConcurrentHashMap</a> <a href="/blog/tags/HashMap/" style="font-size: 13px;">HashMap</a> <a href="/blog/tags/Java/" style="font-size: 13px;">Java</a> <a href="/blog/tags/Jedis/" style="font-size: 13px;">Jedis</a> <a href="/blog/tags/Kafka/" style="font-size: 13px;">Kafka</a> <a href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" style="font-size: 13px;">Kafka事务</a> <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/Notification/" style="font-size: 13px;">Notification</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Raft/" style="font-size: 13px;">Raft</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" style="font-size: 13px;">Redis事件</a> <a href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" style="font-size: 13px;">Redis命令执行过程</a> <a href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" style="font-size: 13px;">Redis哨兵</a> <a href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" style="font-size: 13px;">Redis复制</a> <a href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" style="font-size: 13px;">Redis持久化</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" style="font-size: 13px;">Redis简介</a> <a href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" style="font-size: 13px;">Redis连接池</a> <a href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" style="font-size: 13px;">Redis集群</a> <a href="/blog/tags/docker/" style="font-size: 13px;">docker</a> <a href="/blog/tags/java/" style="font-size: 13px;">java</a> <a href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13px;">java垃圾回收</a> <a href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" style="font-size: 13.5px;">java锁学习</a> <a href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" style="font-size: 13px;">mysql死锁</a> <a href="/blog/tags/mysql%E9%94%81/" style="font-size: 13px;">mysql锁</a> <a href="/blog/tags/synchronized/" style="font-size: 13px;">synchronized</a> <a href="/blog/tags/zookeeper/" style="font-size: 13.5px;">zookeeper</a> <a href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" style="font-size: 13px;">zookeeper基本概念</a> <a href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 13px;">zookeeper序列化</a> <a href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 13px;">zookeeper环境搭建</a> <a href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" style="font-size: 13px;">分布式一致性算法</a> <a href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size: 13px;">分库分表</a> <a href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" style="font-size: 13px;">区间求和</a> <a href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" style="font-size: 13px;">垂直拆分</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">应用容器</a> <a href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" style="font-size: 13px;">开发环境</a> <a href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" style="font-size: 13px;">数据库扩展性设计</a> <a href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" style="font-size: 13px;">线上常见问题</a> <a href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" style="font-size: 13px;">线段树</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/09/">九月 2020</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/08/">八月 2020</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">18</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E5%BB%BA%E7%AB%8B/" class="title">个人博客建立</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:41:57.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" class="title">ZooKeeper的Notification类</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:35:45.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="title">ZooKeeper序列化与反序列化</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:05:30.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" class="title">zookeeper基本概念</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:58:32.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E6%BA%90%E7%A0%81%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="title">zookeeper源码环境搭建</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:57:06.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-ZooKeeper序列化与反序列化" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      ZooKeeper序列化与反序列化
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="article-date">
+	  <time datetime="2020-09-17T16:05:30.000Z" itemprop="datePublished">2020-09-18</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">zookeeper序列化</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>1、序列化和反序列框架</p>
+<p>（1）、Record接口，需要实现的序列化和反序列化的对象都要实现此接口，与jdk中的<strong>Serializable作用类似</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Record</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">serialize</span><span class="params">(OutputArchive archive, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">deserialize</span><span class="params">(InputArchive archive, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>（2）、OutputArchive接口，实现此接口的类用于执行具体的序列化操作</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">OutputArchive</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeByte</span><span class="params">(<span class="keyword">byte</span> b, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeBool</span><span class="params">(<span class="keyword">boolean</span> b, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeInt</span><span class="params">(<span class="keyword">int</span> i, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeLong</span><span class="params">(<span class="keyword">long</span> l, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeFloat</span><span class="params">(<span class="keyword">float</span> f, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeDouble</span><span class="params">(<span class="keyword">double</span> d, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeString</span><span class="params">(String s, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeBuffer</span><span class="params">(<span class="keyword">byte</span>[] buf, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">writeRecord</span><span class="params">(Record r, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">startRecord</span><span class="params">(Record r, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">endRecord</span><span class="params">(Record r, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">startVector</span><span class="params">(List&lt;?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">endVector</span><span class="params">(List&lt;?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">startMap</span><span class="params">(TreeMap&lt;?, ?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">endMap</span><span class="params">(TreeMap&lt;?, ?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>（3）、inputArchive接口，实现此接口的类用于执行具体的反序列化操作</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">public interface InputArchive &#123;</span><br><span class="line">    byte readByte(String tag) throws IOException;</span><br><span class="line">    boolean readBool(String tag) throws IOException;</span><br><span class="line">    int readInt(String tag) throws IOException;</span><br><span class="line">    long readLong(String tag) throws IOException;</span><br><span class="line">    float readFloat(String tag) throws IOException;</span><br><span class="line">    double readDouble(String tag) throws IOException;</span><br><span class="line">    String readString(String tag) throws IOException;</span><br><span class="line">    byte[] readBuffer(String tag) throws IOException;</span><br><span class="line">    void readRecord(Record r, String tag) throws IOException;</span><br><span class="line">    void startRecord(String tag) throws IOException;</span><br><span class="line">    void endRecord(String tag) throws IOException;</span><br><span class="line">    Index startVector(String tag) throws IOException;</span><br><span class="line">    void endVector(String tag) throws IOException;</span><br><span class="line">    Index startMap(String tag) throws IOException;</span><br><span class="line">    void endMap(String tag) throws IOException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>（4）接口间的关系图，可以看到Record接口保持有InputArchive接口和OutputArchive接口的引用，此引用作为代理去实现具体的序列化和反序化操作</p>
+<p>  <img src="/blog/images/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96%E6%8E%A5%E5%8F%A3%E5%85%B3%E7%B3%BB%E5%9B%BE.png" alt="image-20200918000150710"></p>
+<p>2、框架使用</p>
+<p>（1）凡是需要通过网络传输的类都需要实现Record接口，在这里以DataNode类进行具体说明，DataNode被用于存储服务器节点状态，因此需要在各个服务器间传输，DataNode实现如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DataNode</span> <span class="keyword">implements</span> <span class="title">Record</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">long</span> digest;</span><br><span class="line">    <span class="keyword">volatile</span> <span class="keyword">boolean</span> digestCached;</span><br><span class="line">    <span class="keyword">byte</span>[] data;</span><br><span class="line">    Long acl;</span><br><span class="line">    <span class="keyword">public</span> StatPersisted stat;</span><br><span class="line">    <span class="keyword">private</span> Set&lt;String&gt; children = <span class="keyword">null</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">deserialize</span><span class="params">(InputArchive archive, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        archive.startRecord(<span class="string">"node"</span>);</span><br><span class="line">        data = archive.readBuffer(<span class="string">"data"</span>);</span><br><span class="line">        acl = archive.readLong(<span class="string">"acl"</span>);</span><br><span class="line">        stat = <span class="keyword">new</span> StatPersisted();</span><br><span class="line">        stat.deserialize(archive, <span class="string">"statpersisted"</span>);</span><br><span class="line">        archive.endRecord(<span class="string">"node"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">serialize</span><span class="params">(OutputArchive archive, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        archive.startRecord(<span class="keyword">this</span>, <span class="string">"node"</span>);</span><br><span class="line">        archive.writeBuffer(data, <span class="string">"data"</span>);</span><br><span class="line">        archive.writeLong(acl, <span class="string">"acl"</span>);</span><br><span class="line">        stat.serialize(archive, <span class="string">"statpersisted"</span>);</span><br><span class="line">        archive.endRecord(<span class="keyword">this</span>, <span class="string">"node"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//省略其他方法</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>（2）实现OutputArchive接口的类主要用于执行具体的序列化写操作，实现InputArchive接口的类主要用于执行具体的反序列化读操作，由于这两个接口比较类似，因此我们以实现OutputArchive接口的类BinaryOutputArchive进行讲解，BinaryOutputArchive类委托DataOutPut接口（如BinaryIOutputArchive类构造器中引入实现DataOutPut接口的类DataOutputStream）用于将对象序列化为二进制字节流，从而可以通过IO类（如NettyOutputStream）在网络间进行传输或存储到二进制文件（如FileOutputStream）中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BinaryOutputArchive</span> <span class="keyword">implements</span> <span class="title">OutputArchive</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> ByteBuffer bb = ByteBuffer.allocate(<span class="number">1024</span>);</span><br><span class="line">    <span class="keyword">private</span> DataOutput out;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> BinaryOutputArchive <span class="title">getArchive</span><span class="params">(OutputStream strm)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> BinaryOutputArchive(<span class="keyword">new</span> DataOutputStream(strm));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">BinaryOutputArchive</span><span class="params">(DataOutput out)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.out = out;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeByte</span><span class="params">(<span class="keyword">byte</span> b, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        out.writeByte(b);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeBool</span><span class="params">(<span class="keyword">boolean</span> b, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        out.writeBoolean(b);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeInt</span><span class="params">(<span class="keyword">int</span> i, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        out.writeInt(i);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeLong</span><span class="params">(<span class="keyword">long</span> l, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        out.writeLong(l);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeFloat</span><span class="params">(<span class="keyword">float</span> f, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        out.writeFloat(f);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeDouble</span><span class="params">(<span class="keyword">double</span> d, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        out.writeDouble(d);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> ByteBuffer <span class="title">stringToByteBuffer</span><span class="params">(CharSequence s)</span> </span>&#123;</span><br><span class="line">        bb.clear();</span><br><span class="line">        <span class="keyword">final</span> <span class="keyword">int</span> len = s.length();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; len; i++) &#123;</span><br><span class="line">            <span class="keyword">if</span> (bb.remaining() &lt; <span class="number">3</span>) &#123;</span><br><span class="line">                ByteBuffer n = ByteBuffer.allocate(bb.capacity() &lt;&lt; <span class="number">1</span>);</span><br><span class="line">                bb.flip();</span><br><span class="line">                n.put(bb);</span><br><span class="line">                bb = n;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">char</span> c = s.charAt(i);</span><br><span class="line">            <span class="keyword">if</span> (c &lt; <span class="number">0x80</span>) &#123;</span><br><span class="line">                bb.put((<span class="keyword">byte</span>) c);</span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (c &lt; <span class="number">0x800</span>) &#123;</span><br><span class="line">                bb.put((<span class="keyword">byte</span>) (<span class="number">0xc0</span> | (c &gt;&gt; <span class="number">6</span>)));</span><br><span class="line">                bb.put((<span class="keyword">byte</span>) (<span class="number">0x80</span> | (c &amp; <span class="number">0x3f</span>)));</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                bb.put((<span class="keyword">byte</span>) (<span class="number">0xe0</span> | (c &gt;&gt; <span class="number">12</span>)));</span><br><span class="line">                bb.put((<span class="keyword">byte</span>) (<span class="number">0x80</span> | ((c &gt;&gt; <span class="number">6</span>) &amp; <span class="number">0x3f</span>)));</span><br><span class="line">                bb.put((<span class="keyword">byte</span>) (<span class="number">0x80</span> | (c &amp; <span class="number">0x3f</span>)));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        bb.flip();</span><br><span class="line">        <span class="keyword">return</span> bb;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeString</span><span class="params">(String s, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (s == <span class="keyword">null</span>) &#123;</span><br><span class="line">            writeInt(-<span class="number">1</span>, <span class="string">"len"</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ByteBuffer bb = stringToByteBuffer(s);</span><br><span class="line">        writeInt(bb.remaining(), <span class="string">"len"</span>);</span><br><span class="line">        out.write(bb.array(), bb.position(), bb.limit());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeBuffer</span><span class="params">(<span class="keyword">byte</span>[] barr, String tag)</span></span></span><br><span class="line"><span class="function">            <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (barr == <span class="keyword">null</span>) &#123;</span><br><span class="line">            out.writeInt(-<span class="number">1</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        out.writeInt(barr.length);</span><br><span class="line">        out.write(barr);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeRecord</span><span class="params">(Record r, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        r.serialize(<span class="keyword">this</span>, tag);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">startRecord</span><span class="params">(Record r, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">endRecord</span><span class="params">(Record r, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">startVector</span><span class="params">(List&lt;?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (v == <span class="keyword">null</span>) &#123;</span><br><span class="line">            writeInt(-<span class="number">1</span>, tag);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        writeInt(v.size(), tag);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">endVector</span><span class="params">(List&lt;?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">startMap</span><span class="params">(TreeMap&lt;?, ?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        writeInt(v.size(), tag);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">endMap</span><span class="params">(TreeMap&lt;?, ?&gt; v, String tag)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>（3）BinaryInputArchive、BinaryOutputArchive与DataNode的类关系图如下：Index接口用于实现容器对象进行反序列化时的迭代，OutputArchive接口通过引用DataOutput接口从而实现基本对象到二进制流的转化，再由OutputStream接口进行具体的二进制流输出。</p>
+<p><img src="/blog/images/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96%E7%B1%BB%E5%BC%95%E7%94%A8%E5%85%B3%E7%B3%BB%E5%9B%BE.png" alt="image-20200918000450462"></p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://jackliwork.github.io/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" title="ZooKeeper序列化与反序列化" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" title="ZooKeeper的Notification类"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/blog/2020/09/17/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" title="zookeeper基本概念"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+<script src="/blog/js/plugin.min.js"></script>
+<script src="/blog/js/application.js"></script>
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/blog/',
+        CONTENT_URL: '/blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/blog/js/insight.js"></script>
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>

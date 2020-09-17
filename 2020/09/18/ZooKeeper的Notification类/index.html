@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>ZooKeeper的Notification类 | Hexo</title>
+  <meta name="description" content="Notification类定义12345678910111213141516171819public static class Notification &amp;#123;   &#x2F;* * Format version, introduced in 3.4.6 *&#x2F;   public static final int CURRENTVERSION = 0x2;   int version;   &#x2F;* *">
+<meta name="keywords" content="Notification">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ZooKeeper的Notification类">
+<meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;09&#x2F;18&#x2F;ZooKeeper%E7%9A%84Notification%E7%B1%BB&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Notification类定义12345678910111213141516171819public static class Notification &amp;#123;   &#x2F;* * Format version, introduced in 3.4.6 *&#x2F;   public static final int CURRENTVERSION = 0x2;   int version;   &#x2F;* *">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-09-17T16:35:46.000Z">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://jackliwork.github.io/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+  
+  
+  
+</head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/blog/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java%E5%AD%A6%E4%B9%A0/">Java学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Kafka%E5%AD%A6%E4%B9%A0/">Kafka学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AD%A6%E4%B9%A0/">java学习</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/AQS/" rel="tag">AQS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/ConcurrentHashMap/" rel="tag">ConcurrentHashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/HashMap/" rel="tag">HashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Java/" rel="tag">Java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka/" rel="tag">Kafka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" rel="tag">Kafka事务</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Notification/" rel="tag">Notification</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Raft/" rel="tag">Raft</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">10</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" rel="tag">Redis事件</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" rel="tag">Redis命令执行过程</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" rel="tag">Redis哨兵</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" rel="tag">Redis复制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" rel="tag">Redis持久化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" rel="tag">Redis简介</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" rel="tag">Redis集群</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java/" rel="tag">java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="tag">java垃圾回收</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" rel="tag">java锁学习</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" rel="tag">mysql死锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E9%94%81/" rel="tag">mysql锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/synchronized/" rel="tag">synchronized</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" rel="tag">zookeeper基本概念</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">zookeeper序列化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">zookeeper环境搭建</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" rel="tag">分布式一致性算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="tag">分库分表</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" rel="tag">区间求和</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" rel="tag">垂直拆分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" rel="tag">应用容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" rel="tag">开发环境</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" rel="tag">数据库扩展性设计</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="tag">线上常见问题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" rel="tag">线段树</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/blog/tags/AQS/" style="font-size: 13px;">AQS</a> <a href="/blog/tags/ConcurrentHashMap/" style="font-size: 13px;">ConcurrentHashMap</a> <a href="/blog/tags/HashMap/" style="font-size: 13px;">HashMap</a> <a href="/blog/tags/Java/" style="font-size: 13px;">Java</a> <a href="/blog/tags/Jedis/" style="font-size: 13px;">Jedis</a> <a href="/blog/tags/Kafka/" style="font-size: 13px;">Kafka</a> <a href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" style="font-size: 13px;">Kafka事务</a> <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/Notification/" style="font-size: 13px;">Notification</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Raft/" style="font-size: 13px;">Raft</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" style="font-size: 13px;">Redis事件</a> <a href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" style="font-size: 13px;">Redis命令执行过程</a> <a href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" style="font-size: 13px;">Redis哨兵</a> <a href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" style="font-size: 13px;">Redis复制</a> <a href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" style="font-size: 13px;">Redis持久化</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" style="font-size: 13px;">Redis简介</a> <a href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" style="font-size: 13px;">Redis连接池</a> <a href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" style="font-size: 13px;">Redis集群</a> <a href="/blog/tags/docker/" style="font-size: 13px;">docker</a> <a href="/blog/tags/java/" style="font-size: 13px;">java</a> <a href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13px;">java垃圾回收</a> <a href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" style="font-size: 13.5px;">java锁学习</a> <a href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" style="font-size: 13px;">mysql死锁</a> <a href="/blog/tags/mysql%E9%94%81/" style="font-size: 13px;">mysql锁</a> <a href="/blog/tags/synchronized/" style="font-size: 13px;">synchronized</a> <a href="/blog/tags/zookeeper/" style="font-size: 13.5px;">zookeeper</a> <a href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" style="font-size: 13px;">zookeeper基本概念</a> <a href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 13px;">zookeeper序列化</a> <a href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 13px;">zookeeper环境搭建</a> <a href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" style="font-size: 13px;">分布式一致性算法</a> <a href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size: 13px;">分库分表</a> <a href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" style="font-size: 13px;">区间求和</a> <a href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" style="font-size: 13px;">垂直拆分</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">应用容器</a> <a href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" style="font-size: 13px;">开发环境</a> <a href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" style="font-size: 13px;">数据库扩展性设计</a> <a href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" style="font-size: 13px;">线上常见问题</a> <a href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" style="font-size: 13px;">线段树</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/09/">九月 2020</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/08/">八月 2020</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">18</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E5%BB%BA%E7%AB%8B/" class="title">个人博客建立</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:41:57.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" class="title">ZooKeeper的Notification类</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:35:45.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="title">ZooKeeper序列化与反序列化</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:05:30.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" class="title">zookeeper基本概念</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:58:32.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E6%BA%90%E7%A0%81%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="title">zookeeper源码环境搭建</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:57:06.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Notification类定义"><span class="toc-number">1.</span> <span class="toc-text">Notification类定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#sid"><span class="toc-number">2.</span> <span class="toc-text">sid</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#epoch"><span class="toc-number">3.</span> <span class="toc-text">epoch</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#zxid"><span class="toc-number">4.</span> <span class="toc-text">zxid</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#state"><span class="toc-number">5.</span> <span class="toc-text">state</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#QuorumVerifier"><span class="toc-number">6.</span> <span class="toc-text">QuorumVerifier</span></a></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-ZooKeeper的Notification类" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      ZooKeeper的Notification类
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" class="article-date">
+	  <time datetime="2020-09-17T16:35:45.000Z" itemprop="datePublished">2020-09-18</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/blog/tags/Notification/" rel="tag">Notification</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="Notification类定义"><a href="#Notification类定义" class="headerlink" title="Notification类定义"></a>Notification类定义</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">public static class Notification &#123; </span><br><span class="line">  /* * Format version, introduced in 3.4.6 */ </span><br><span class="line">  public static final int CURRENTVERSION = 0x2; </span><br><span class="line">  int version; </span><br><span class="line">  /* * 推举的leader服务器的sid */ </span><br><span class="line">  long leader; </span><br><span class="line">  /* * 推举的leader服务器的zxid */ </span><br><span class="line">  long zxid; </span><br><span class="line">  /* * 当前服务器记录的记录的选举轮数 */ </span><br><span class="line">  long electionEpoch; </span><br><span class="line">  /* * 当前服务器记录的记录的状态 */ </span><br><span class="line">  QuorumPeer.ServerState state; </span><br><span class="line">  /* * 当前服务器的sid */ </span><br><span class="line">  long sid; </span><br><span class="line">  /* * 当前给定服务器集合的数量是否达到法定标准（如超过一半才算有效） */ </span><br><span class="line">  QuorumVerifier qv; </span><br><span class="line">  /* * 推举的leader服务器记录的选举轮数 */ </span><br><span class="line">  long peerEpoch; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="sid"><a href="#sid" class="headerlink" title="sid"></a>sid</h3><p>此服务器在整个Zookeeper集群中的唯一ID（整数）。在该配置文件中，server.后面的数据即为myid(Leader选举时用的sid或者leader)。</p>
+<p>server.1=zoo1:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888</p>
+<h3 id="epoch"><a href="#epoch" class="headerlink" title="epoch"></a>epoch</h3><p>选举进行的轮数，从1开始记录，每次选出新的Leader，都加1</p>
+<h3 id="zxid"><a href="#zxid" class="headerlink" title="zxid"></a>zxid</h3><p>类似于paoxs协议中提议的编号。Zookeeper使用一个64位的数来表示，高32位是Leader服务器的epoch，从1开始，每次选出新的Leader，epoch加一。低32位为该epoch内的序号，每次epoch变化，都将低32位的序号重置。这样保证了zxid的全局递增性。</p>
+<h3 id="state"><a href="#state" class="headerlink" title="state"></a>state</h3><ol>
+<li>LOOKING： 选举中状态。该状态下的服务器认为当前集群中没有Leader，会发起Leader选举。</li>
+<li>FOLLOWING： 跟随者状态。表明当前服务器角色是Follower，并且它知道Leader是谁。</li>
+<li>LEADING： 领导者状态。表明当前服务器角色是Leader，它会维护与Follower间的心跳。</li>
+<li>OBSERVING： 观察者状态。表明当前服务器角色是Observer，与Folower唯一的不同在于不参与选举</li>
+</ol>
+<h3 id="QuorumVerifier"><a href="#QuorumVerifier" class="headerlink" title="QuorumVerifier"></a>QuorumVerifier</h3><p>QuorumVerifier对象作为法定数量验证器，主要用于判断给定的server集合是否达到法定数量，即验证此次决议是否有</p>
+<p>1、Notification概述</p>
+<p>Notification作为服务器选举时的一种消息载体，当服务器发送此消息时，表明此服务器已经改变了他的投票。此消息在服务器已加入leader选举或了解到有其他服务器已开始新一轮的选举时被发送。</p>
+<p>2、属性详解</p>
+<table>
+<thead>
+<tr>
+<th>属性名</th>
+<th>属性类型</th>
+<th>属性描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>version</td>
+<td>int</td>
+<td>消息版本</td>
+</tr>
+<tr>
+<td>leader</td>
+<td>long</td>
+<td>提议的leader的sid</td>
+</tr>
+<tr>
+<td>zxid</td>
+<td>long</td>
+<td>提议的leader记录的zxid</td>
+</tr>
+<tr>
+<td>electionEpoch</td>
+<td>long</td>
+<td>发出Notification的server的logicalclock</td>
+</tr>
+<tr>
+<td>sid</td>
+<td>long</td>
+<td>发送者的sid</td>
+</tr>
+<tr>
+<td>qv</td>
+<td>QuorumVerifier</td>
+<td>验证器，发送者记录的服务器的sid和对应投票者角色</td>
+</tr>
+<tr>
+<td>peerEpoch</td>
+<td>long</td>
+<td>当前服务器记录的任期stateQuorumPeer.ServerState发送者的状态</td>
+</tr>
+</tbody></table>
+<p>3、electionEpoch、logicalclock和peerEpoch之间的区别</p>
+<p>（1）<strong>electionEpoch</strong>和<strong>logicalclock</strong>的区别：<strong>logicalclock</strong>则指的是当前Server所处的选举的轮次，每次调用<strong>lookForLeader()</strong>方法，它的值都会加一，<strong>electionEpoch</strong>指的是服务器在发送Notification时所记录的<strong>logicalclock</strong></p>
+<p>（2）<strong>electionEpoch</strong>和<strong>peerEpoch</strong>的区别：<strong>electionEpoch</strong>记录选举的轮次，而<strong>peerEpoch</strong>则指的是当前leader的任期，即成功选出当前leader时所在的选举轮次。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://jackliwork.github.io/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" title="ZooKeeper的Notification类" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/blog/2020/09/18/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E5%BB%BA%E7%AB%8B/" title="个人博客建立"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" title="ZooKeeper序列化与反序列化"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+<script src="/blog/js/plugin.min.js"></script>
+<script src="/blog/js/application.js"></script>
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/blog/',
+        CONTENT_URL: '/blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/blog/js/insight.js"></script>
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>

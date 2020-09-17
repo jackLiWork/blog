@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Kafka事务 | Hexo</title>
+  <meta name="description" content="应用场景最初出发点是为了在Kafka Streams中实现Exactly-Once语义的数据处理，后来发展为允许将消费和生产的batch处理（涉及多个Partition）在一个原子单元内完成（即操作要么全部完成，要么全部失败） 事务核心变量ProducerId：生产者id，由事务协调器提供，生产者重启后会发生改变，因此通过ProducerId和主题-分区序列号sequence number（ 从0">
+<meta name="keywords" content="Kafka,Kafka事务">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Kafka事务">
+<meta property="og:url" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;20&#x2F;Kafka%E4%BA%8B%E5%8A%A1&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="应用场景最初出发点是为了在Kafka Streams中实现Exactly-Once语义的数据处理，后来发展为允许将消费和生产的batch处理（涉及多个Partition）在一个原子单元内完成（即操作要么全部完成，要么全部失败） 事务核心变量ProducerId：生产者id，由事务协调器提供，生产者重启后会发生改变，因此通过ProducerId和主题-分区序列号sequence number（ 从0">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;20&#x2F;images&#x2F;Kafka%E4%BA%8B%E5%8A%A1&#x2F;image-20200825180423074.png">
+<meta property="og:updated_time" content="2020-08-26T11:59:26.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;jackliwork.github.io&#x2F;blog&#x2F;2020&#x2F;08&#x2F;20&#x2F;images&#x2F;Kafka%E4%BA%8B%E5%8A%A1&#x2F;image-20200825180423074.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="https://jackliwork.github.io/blog/2020/08/20/Kafka%E4%BA%8B%E5%8A%A1/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  <link rel="stylesheet" href="/blog/css/style.css">
+  
+  
+  
+  
+</head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/blog/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">首页</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">归档</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/blog/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">分类</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/blog/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">标签</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/blog/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">书单</span>
+          </a>
+        </li>
+        
+      </ul>
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">公告</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Java%E5%AD%A6%E4%B9%A0/">Java学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Kafka%E5%AD%A6%E4%B9%A0/">Kafka学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Mysql%E5%AD%A6%E4%B9%A0/">Mysql学习</a><span class="category-list-count">2</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/Redis%E5%AD%A6%E4%B9%A0/">Redis学习</a><span class="category-list-count">11</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/docker%E5%AD%A6%E4%B9%A0/">docker学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AD%A6%E4%B9%A0/">java学习</a><span class="category-list-count">4</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/java%E5%AE%B9%E5%99%A8%E5%AD%A6%E4%B9%A0/">java容器学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/mysql%E5%AD%A6%E4%B9%A0/">mysql学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a><span class="category-list-count">5</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/zookeeper%E6%BA%90%E7%A0%81%E5%AD%A6%E4%B9%A0/">zookeeper源码学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E5%AD%A6%E4%B9%A0/">分布式一致性学习</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a><span class="category-list-count">1</span></li><li class="category-list-item"><a class="category-list-link" href="/blog/categories/%E7%AE%97%E6%B3%95/">算法</a><span class="category-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget-body">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/AQS/" rel="tag">AQS</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/ConcurrentHashMap/" rel="tag">ConcurrentHashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/HashMap/" rel="tag">HashMap</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Java/" rel="tag">Java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Jedis/" rel="tag">Jedis</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka/" rel="tag">Kafka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" rel="tag">Kafka事务</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/MVCC/" rel="tag">MVCC</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Notification/" rel="tag">Notification</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" rel="tag">RPC注册中心</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Raft/" rel="tag">Raft</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis/" rel="tag">Redis</a><span class="tag-list-count">10</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" rel="tag">Redis事件</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" rel="tag">Redis命令执行过程</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" rel="tag">Redis哨兵</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" rel="tag">Redis复制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" rel="tag">Redis持久化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag">Redis数据库</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag">Redis数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" rel="tag">Redis服务端</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" rel="tag">Redis简介</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" rel="tag">Redis连接池</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" rel="tag">Redis集群</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/docker/" rel="tag">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java/" rel="tag">java</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" rel="tag">java垃圾回收</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" rel="tag">java锁学习</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" rel="tag">mysql死锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/mysql%E9%94%81/" rel="tag">mysql锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/synchronized/" rel="tag">synchronized</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper/" rel="tag">zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" rel="tag">zookeeper基本概念</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" rel="tag">zookeeper序列化</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" rel="tag">zookeeper环境搭建</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" rel="tag">分布式一致性算法</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" rel="tag">分库分表</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" rel="tag">区间求和</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" rel="tag">垂直拆分</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" rel="tag">多版本并发控制</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%AE%B9%E5%99%A8/" rel="tag">容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" rel="tag">应用容器</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" rel="tag">开发环境</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" rel="tag">数据库扩展性设计</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" rel="tag">线上常见问题</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" rel="tag">线段树</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" rel="tag">迭代器</a><span class="tag-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget-body tagcloud">
+      <a href="/blog/tags/AQS/" style="font-size: 13px;">AQS</a> <a href="/blog/tags/ConcurrentHashMap/" style="font-size: 13px;">ConcurrentHashMap</a> <a href="/blog/tags/HashMap/" style="font-size: 13px;">HashMap</a> <a href="/blog/tags/Java/" style="font-size: 13px;">Java</a> <a href="/blog/tags/Jedis/" style="font-size: 13px;">Jedis</a> <a href="/blog/tags/Kafka/" style="font-size: 13px;">Kafka</a> <a href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" style="font-size: 13px;">Kafka事务</a> <a href="/blog/tags/MVCC/" style="font-size: 13px;">MVCC</a> <a href="/blog/tags/Notification/" style="font-size: 13px;">Notification</a> <a href="/blog/tags/RPC%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/" style="font-size: 13px;">RPC注册中心</a> <a href="/blog/tags/Raft/" style="font-size: 13px;">Raft</a> <a href="/blog/tags/Redis/" style="font-size: 14px;">Redis</a> <a href="/blog/tags/Redis%E4%BA%8B%E4%BB%B6/" style="font-size: 13px;">Redis事件</a> <a href="/blog/tags/Redis%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B/" style="font-size: 13px;">Redis命令执行过程</a> <a href="/blog/tags/Redis%E5%93%A8%E5%85%B5/" style="font-size: 13px;">Redis哨兵</a> <a href="/blog/tags/Redis%E5%A4%8D%E5%88%B6/" style="font-size: 13px;">Redis复制</a> <a href="/blog/tags/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" style="font-size: 13px;">Redis持久化</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 13px;">Redis数据库</a> <a href="/blog/tags/Redis%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">Redis数据结构</a> <a href="/blog/tags/Redis%E6%9C%8D%E5%8A%A1%E7%AB%AF/" style="font-size: 13px;">Redis服务端</a> <a href="/blog/tags/Redis%E7%AE%80%E4%BB%8B/" style="font-size: 13px;">Redis简介</a> <a href="/blog/tags/Redis%E8%BF%9E%E6%8E%A5%E6%B1%A0/" style="font-size: 13px;">Redis连接池</a> <a href="/blog/tags/Redis%E9%9B%86%E7%BE%A4/" style="font-size: 13px;">Redis集群</a> <a href="/blog/tags/docker/" style="font-size: 13px;">docker</a> <a href="/blog/tags/java/" style="font-size: 13px;">java</a> <a href="/blog/tags/java%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" style="font-size: 13px;">java垃圾回收</a> <a href="/blog/tags/java%E9%94%81%E5%AD%A6%E4%B9%A0/" style="font-size: 13.5px;">java锁学习</a> <a href="/blog/tags/mysql%E6%AD%BB%E9%94%81/" style="font-size: 13px;">mysql死锁</a> <a href="/blog/tags/mysql%E9%94%81/" style="font-size: 13px;">mysql锁</a> <a href="/blog/tags/synchronized/" style="font-size: 13px;">synchronized</a> <a href="/blog/tags/zookeeper/" style="font-size: 13.5px;">zookeeper</a> <a href="/blog/tags/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" style="font-size: 13px;">zookeeper基本概念</a> <a href="/blog/tags/zookeeper%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 13px;">zookeeper序列化</a> <a href="/blog/tags/zookeeper%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" style="font-size: 13px;">zookeeper环境搭建</a> <a href="/blog/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95/" style="font-size: 13px;">分布式一致性算法</a> <a href="/blog/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/" style="font-size: 13px;">分库分表</a> <a href="/blog/tags/%E5%8C%BA%E9%97%B4%E6%B1%82%E5%92%8C/" style="font-size: 13px;">区间求和</a> <a href="/blog/tags/%E5%9E%82%E7%9B%B4%E6%8B%86%E5%88%86/" style="font-size: 13px;">垂直拆分</a> <a href="/blog/tags/%E5%A4%9A%E7%89%88%E6%9C%AC%E5%B9%B6%E5%8F%91%E6%8E%A7%E5%88%B6/" style="font-size: 13px;">多版本并发控制</a> <a href="/blog/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">容器</a> <a href="/blog/tags/%E5%BA%94%E7%94%A8%E5%AE%B9%E5%99%A8/" style="font-size: 13px;">应用容器</a> <a href="/blog/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" style="font-size: 13px;">开发环境</a> <a href="/blog/tags/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%89%A9%E5%B1%95%E6%80%A7%E8%AE%BE%E8%AE%A1/" style="font-size: 13px;">数据库扩展性设计</a> <a href="/blog/tags/%E7%BA%BF%E4%B8%8A%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/" style="font-size: 13px;">线上常见问题</a> <a href="/blog/tags/%E7%BA%BF%E6%AE%B5%E6%A0%91/" style="font-size: 13px;">线段树</a> <a href="/blog/tags/%E8%BF%AD%E4%BB%A3%E5%99%A8/" style="font-size: 13px;">迭代器</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/09/">九月 2020</a><span class="archive-list-count">17</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/08/">八月 2020</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/07/">七月 2020</a><span class="archive-list-count">18</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/03/">三月 2020</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2020/01/">一月 2020</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2019/11/">十一月 2019</a><span class="archive-list-count">1</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/">开发环境搭建</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/%E4%B8%AA%E4%BA%BA%E5%8D%9A%E5%AE%A2%E5%BB%BA%E7%AB%8B/" class="title">个人博客建立</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:41:57.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E7%9A%84Notification%E7%B1%BB/" class="title">ZooKeeper的Notification类</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:35:45.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/18/ZooKeeper%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96/" class="title">ZooKeeper序列化与反序列化</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T16:05:30.000Z" itemprop="datePublished">2020-09-18</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/" class="title">zookeeper基本概念</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:58:32.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/blog/categories/zookeeper%E5%AD%A6%E4%B9%A0/">zookeeper学习</a>
+              </p>
+              <p class="item-title">
+                <a href="/blog/2020/09/17/zookeeper%E6%BA%90%E7%A0%81%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/" class="title">zookeeper源码环境搭建</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-09-17T15:57:06.000Z" itemprop="datePublished">2020-09-17</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<aside class="sidebar sidebar-toc collapse" id="collapseToc" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    <nav id="toc" class="article-toc">
+      <h3 class="toc-title">文章目录</h3>
+      <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#应用场景"><span class="toc-number">1.</span> <span class="toc-text">应用场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#事务核心变量"><span class="toc-number">2.</span> <span class="toc-text">事务核心变量</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#事务协调器"><span class="toc-number">3.</span> <span class="toc-text">事务协调器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#事务的核心流程"><span class="toc-number">4.</span> <span class="toc-text">事务的核心流程</span></a></li></ol>
+    </nav>
+  </div>
+</aside>
+
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-Kafka事务" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Kafka事务
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/blog/2020/08/20/Kafka%E4%BA%8B%E5%8A%A1/" class="article-date">
+	  <time datetime="2020-08-20T13:09:30.000Z" itemprop="datePublished">2020-08-20</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/blog/categories/Kafka%E5%AD%A6%E4%B9%A0/">Kafka学习</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link" href="/blog/tags/Kafka/" rel="tag">Kafka</a>, <a class="article-tag-link" href="/blog/tags/Kafka%E4%BA%8B%E5%8A%A1/" rel="tag">Kafka事务</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/blog/2020/08/20/Kafka%E4%BA%8B%E5%8A%A1/#comments" class="article-comment-link">评论</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h3><p>最初出发点是为了在Kafka Streams中实现Exactly-Once语义的数据处理，后来发展为允许将消费和生产的batch处理（涉及多个Partition）在一个原子单元内完成（即操作要么全部完成，要么全部失败）</p>
+<h3 id="事务核心变量"><a href="#事务核心变量" class="headerlink" title="事务核心变量"></a>事务核心变量</h3><p><strong>ProducerId</strong>：生产者id，由事务协调器提供，生产者重启后会发生改变，因此通过ProducerId和主题-分区序列号sequence number（ 从0开始自增，为每个 Topic-Partition都会维护一个独立的 sequence number）仅能保证会话级别的幂等性（即保证单个会话且单个主题-分区内不丟不重）。为了保证此PID与sequence number对应信息在重启后快速灰度，broker增加了.snapshot的快照文件，使得broker在重启后可以加载最新.snapshot文件进行恢复到某一时间点，在通过读取少量增量log日志信息实现完整恢复。</p>
+<p><strong>TransactionalID</strong>：事务id，由生产者应用自己提供，重启后不会改变，主要作用是从事务协调器角度可以跨会话唯一标记一个生产者（即事务协调器会维护事务id与生产者id的映射关系，当生产者重启后或此生产者宕机引入新的生产者时，分配的生产者id不变）</p>
+<p><strong>ProducerEpoch</strong>：生产者纪元，每次生产者去事务协调器获取生产者id时，此值都会加1，主要用于保证每个事务id在同一时间仅有一个生产者实例（旧的生产者会抛异常退出）</p>
+<p><strong>消息中Transactional字段</strong>：事务消息数据协议中会新增一个字段用于告诉broker此条消息是一个事务消息，数据协议格式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">| Unused (6-15) | Control (5) | Transactional (4) | Timestamp Type (3) | Compression Type (0-2) |</span><br></pre></td></tr></table></figure>
+
+<p><strong>Transaction Marker消息</strong>：用于事务提交的最后阶段，由事务协调器向broker发送，表示当前事务被提交或回滚，相当于一个信号，这样在Consumer处理消费时，就可以根据 marker信息来识别marker消息之前的事务消息是被提交还是被回滚</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">key：ControlMessageType //0表示commit，1表示回滚</span><br><span class="line">value：CoordinatorEpoch //协调者任期</span><br></pre></td></tr></table></figure>
+
+<p><strong>Last Stable Offset (LSO)</strong>：对于一个 Partition 而言，offset 小于 LSO 的数据，全都是已经确定的数据，主要应用于事务操作，即offset 小于LSO的事务操作都是已经完成的事务（已经 commit 或 abort）。如果此Partition没有涉及到事务消息，那么 LSO 就是HW（表示已经成功备份到其他 replicas中且满足最小备份数量的最新一条数据的offset）。如果consumer读取消息且设置隔离界别为读已提交，则此consumer仅能看到offset小于LSO的消息。</p>
+<h3 id="事务协调器"><a href="#事务协调器" class="headerlink" title="事务协调器"></a>事务协调器</h3><p>事务协调器通过2PC一致性协议实现事务管理，同时维护了事务id与生产者id映射关系以及每个生产者当前处理事务的状态和状态转移。为了保证高可用，复用kafka中主题的多副本和acks参数机制，即通过内部名为__transaction_state的主题来保存每个事务的状态（默认为50个分区，通过事务id的hash值取余来获取对应分区），主题中消息存储的格式如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">key</th>
+<th align="center">含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">TransactionalId</td>
+<td align="center">生产者的事务id，由生产者提供，重启后不会发生变化</td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>value</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ProducerId</td>
+<td>生产者id（Pid），用于标识一个生产者（全局唯一），由事务协调者提供。若事务id对应的生产者id已存在，在会返回此事务id绑定的生产者id，但ProducerEpoch会递增</td>
+</tr>
+<tr>
+<td>ProducerEpoch</td>
+<td>生产者id对应的当前纪元，每次获取Pid时ProducerEpoch都会进行递增，由事务协调者提供</td>
+</tr>
+<tr>
+<td>TxnTimeoutDuration</td>
+<td>事务的超时时间</td>
+</tr>
+<tr>
+<td>TxnStatus</td>
+<td>事务的状态</td>
+</tr>
+<tr>
+<td>TxnPartitions</td>
+<td>当前事务涉及改动的主题和对应主题的分区组成的列表</td>
+</tr>
+<tr>
+<td>TxnLastUpdateTime</td>
+<td>事务的更新时间</td>
+</tr>
+<tr>
+<td>TxnStartTime</td>
+<td>事务的开始时间</td>
+</tr>
+</tbody></table>
+<p>两阶段事务的状态转换流转图如下：</p>
+<p><img src="../images/Kafka%E4%BA%8B%E5%8A%A1/image-20200825180423074.png" alt="image-20200825180423074"></p>
+<p>从图中可以看到，主要分为两条线：事务正常提交（蓝色线）和事务异常回滚（红色线），同时我们也可以看到只有Empty-&gt;OnGoing、OnGoing-&gt;PrepareCommit、OnGoing-&gt;PrepareAbort、OnGoing-&gt;PrepareEpochFenced状态转换需要与客户端交互，其他的状态转换都是在事务协调器与broker之间交互完成的。这也说明，事务状态一旦转移到PrepareEpochFencd、PrepareAbort和PrepareCommit状态，事务的结果已经确定，不需要客户端参与（客户端挂了也没有关系）。同时我们也可以得出当事务协调器记录的事务状态处于OnGoing状态时，此时若客户端由于某种原因挂掉了，那么客户端在重启之后，由于ProducerEpoch会递增加1，导致原来的事务状态转移到PrepareEpochFencd状态，接下来此事物会被强行停止。</p>
+<h3 id="事务的核心流程"><a href="#事务的核心流程" class="headerlink" title="事务的核心流程"></a>事务的核心流程</h3><p>1、查找事务协调器TransactionCoordinator</p>
+<p>生产者通过向集群中负载最小的节点Broker发送FindCoordinatorRequest请求以获取对应的事务协调器TransactionCoordinator。对于具有事务Id的生产者，通过hash(transactionalId)/50来获取对应主题__transaction_state的分区，从而获取对应事务协调器所在的broker服务器</p>
+<p>2、获取生产者id</p>
+<p>生产者在initializeTransactions()方法中会向 TransactionCoordinator发送 InitPidRequest请求以获取其分配的生产者id（PID），并持久化对应的TransactionMetadata到事务日志中（主要保存事务id与PID的映射关系）<br>（1）如果此生产者拥有的事务id在当前事务协调器中不存在对应的事务状态，那么会产生一个新的生产者Id且初始epoch为-1，同时初始化事务状态对象TransactionMetadata，并持久化到事务日志中<br>（2）如果此生产者拥有的事务id在当前事务协调器中已存在对应的事务状态，会进行状态检查，检查通过会将TransactionMetadata持久化到事务日志中</p>
+<table>
+<thead>
+<tr>
+<th>当前状态</th>
+<th>执行操作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PrepareAbort 或 PrepareCommit</td>
+<td>返回并发事务异常</td>
+</tr>
+<tr>
+<td>CompleteAbort或CompleteCommit</td>
+<td>转移为Empty状态，并递增ProducerEpoch值，并将状态持久化到事务日志中</td>
+</tr>
+<tr>
+<td>Ongoing</td>
+<td>转移为PrepareEpochFence状态，并回滚当前事务，最后返回并发事务异常</td>
+</tr>
+<tr>
+<td>PrepareEpochFence或Dead</td>
+<td>直接抛出FATAL异常</td>
+</tr>
+</tbody></table>
+<p>3、开始事务</p>
+<p>生产者通过调用 <code>beginTransaction()</code>开始一个事务操作，注意此处并没有与事务协调器进行交互，只是更新了本地事务状态</p>
+<p>4、处理事务</p>
+<p>生产者会进行具体的事务处理，包括发送消息或消费消息。</p>
+<p>（1）作为生产者，在调用send()方法，会收集事务处理过程中涉及的主题-分区信息，并通过AddPartitionsToTxnRequest请求将这些主题-分区信息发送到事务协调者TransactionCoordinator，事务协调者收到请求后会将这些主题-分区信息先更新到TransactionMetadata对象中，然后在持久化到事务日志中。<br>（2）作为消费者，在调用sendOffsetsToTransaction()方法时，会收集事务处理过程中涉及的主题-分区信息，通过AddPartitionsToTxnRequest请求将这些主题-分区信息发送到事务协调者TransactionCoordinator，事务协调者收到请求后会将这些主题-分区信息先更新到TransactionMetadata对象中，然后在持久化到事务日志中；当消费者收到事务协调器TransactionCoordinator的响应后，会再次发送TxnOffsetsCommitRequest请求给消费者所在的组协调器GroupCoordinator，组协调器GroupCoordinator 在收到AddPartitionsToTxnRequest请求响应后，会将 offset 信息持久化到consumer offsets log中（包含对应的PID信息），但是不会更新到缓存中（保证这个 offset 信息对 consumer 是不可见的）。</p>
+<p>5、提交事务</p>
+<p>当生产者需要提交事务或回滚事务时，生产者会向事务协调器TransactionCoordinator发送EndTxnRequest请求，TransactionCoordinator 在收到 EndTxnRequest 请求后，将状态转移成 PREPARE_COMMIT 或 PREPARE_ABORT，更新事务的TransactionMetadata对象信息，并将TransactionMetadata对象信息持久化到事务日志中，之后事务协调器会进行以下操作（不涉及客户端）：</p>
+<p>（1）事务协调器向TransactionMetadata对象信息保存主题-分区所在的Broker发送WriteTxnMarkerRquest请求。若是作为生产者时涉及的Topic-Partition，则会在对应主题分区中插入一个Transaction Marker消息；若是作为消费者时涉及的Topic-Partition（即主题__consumer_offsets），则也会向此主题分区中插入一个Transaction Marker控制消息；<br>（2）当这个事务涉及到所有 Topic-Partition都已经进行完对应操作后，TransactionCoordinator 会将这个事务的状态置为 COMMIT 或 ABORT，并持久化到事务日志文件中</p>
+<p>6、consumer消费事务消息</p>
+<p>对于事务，consumer端消费者隔离级别有两种：读已提交read_committed和读未提交read_uncommitted。（1）对于read_uncommitted隔离级别，consumer能够读取到所有数据，与普通的消费机制基本相同，即会返回HW之前的所有消息（2）对于read_committed隔离级别，当消费者向broker发送Fetch请求拉取消息数据时，server端只会返回LSO之前的数据。同时我们有事务的提交机制可知，事务数据中不仅包含生产者提交的消息，还包括Transaction Marker控制消息和回滚的消息，因此消费者需要进行check来过滤掉Transaction Marker控制消息和回滚的事务消息。为了提升消费者的过滤Transaction Marker控制消息和回滚的消息性能，kafka的broker端会追踪每个Partition涉及到的回滚transactions的相关信息，并将其持久化到一个单独的文件中（文件后缀为.txnindex），存储的数据如下：</p>
+<table>
+<thead>
+<tr>
+<th>变量名</th>
+<th>含义</th>
+<th>变量名</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PID</td>
+<td>生产者id</td>
+<td>LastOffset</td>
+<td>此回滚事务涉及消息中的最大偏移量</td>
+</tr>
+<tr>
+<td>FirstOffset</td>
+<td>此回滚事务涉及消息中的最小偏移量</td>
+<td>LastStableOffset</td>
+<td>此回滚事物在提交时对应的LSO</td>
+</tr>
+</tbody></table>
+<p>当消费者请求获取消息时，会对回滚事务文件中日志信息进行过滤，以获取对应区间内回滚事务的相关日志信息（abortedTransactions有序队列），返回给消费者，供消费者进行回滚事务消息的过滤，其过滤代码如下：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TransactionIndex</span>(<span class="params">val startOffset: <span class="type">Long</span>, @volatile var file: <span class="type">File</span></span>) <span class="keyword">extends</span> <span class="title">Logging</span> </span>&#123;</span><br><span class="line">  <span class="comment">// fetchOffset为起始位置，upperBoundOffset表示结束位置，即拉取[fetchOffset,upperBoundOffset]</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">collectAbortedTxns</span></span>(fetchOffset: <span class="type">Long</span>, upperBoundOffset: <span class="type">Long</span>): <span class="type">TxnIndexSearchResult</span> = &#123;</span><br><span class="line">    <span class="keyword">val</span> abortedTransactions = <span class="type">ListBuffer</span>.empty[<span class="type">AbortedTxn</span>]</span><br><span class="line">    <span class="comment">// 遍历事务的Aborted消息</span></span><br><span class="line">    <span class="keyword">for</span> ((abortedTxn, _) &lt;- iterator()) &#123;</span><br><span class="line">      <span class="comment">// 判断此回滚事务区间[firstOffset, lastOffset]与拉取区间[fetchOffset,upperBoundOffset]是否有交集</span></span><br><span class="line">      <span class="keyword">if</span> (abortedTxn.lastOffset &gt;= fetchOffset &amp;&amp; abortedTxn.firstOffset &lt; upperBoundOffset)</span><br><span class="line">        abortedTransactions += abortedTxn</span><br><span class="line">      <span class="comment">// 如果当前回滚事务的lastStableOffset大于upperBoundOffset，表示之后事务已经和拉取区间没有交集了</span></span><br><span class="line">      <span class="keyword">if</span> (abortedTxn.lastStableOffset &gt;= upperBoundOffset)</span><br><span class="line">        <span class="keyword">return</span> <span class="type">TxnIndexSearchResult</span>(abortedTransactions.toList, isComplete = <span class="literal">true</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="type">TxnIndexSearchResult</span>(abortedTransactions.toList, isComplete = <span class="literal">false</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当消费者拉取到消息数据和与这批消息数据相关的回滚信息集合时，会依次遍历消息数据中每一条消息，并对每一条消息进行如下判断：</p>
+<ol>
+<li>此消息是正常的消息。首先将此消息对应PID和offset与abortedTransactions队列头部存储的回滚事务信息中的PID和FirstOffset进行比较。若PID相同但当前消息的offset大于等于队列头部停止事务消息中的FirstOffset变量，则将对应的PID添加到 abortedProducerIds集合中，同时删除abortedTransactions队列头部的此回滚事务信息，最后丢弃此条消息。否则检查当前消息的PID是否在 abortedProducerIds集合中，如果存在的话，就丢弃此条消息；若不存在，则返回给上层应用</li>
+<li>此消息是Transaction Marker控制消息。若为ABORT类型时，会从abortedProducerId集合中删掉与控制消息对应的PID；若是COMMIT类型时，则忽略</li>
+</ol>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="https://jackliwork.github.io/blog/2020/08/20/Kafka%E4%BA%8B%E5%8A%A1/" title="Kafka事务" target="_blank" rel="external">https://jackliwork.github.io/blog/2020/08/20/Kafka%E4%BA%8B%E5%8A%A1/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/blog/2020/08/27/G1%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/" title="G1垃圾回收"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;上一篇</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/blog/2020/08/10/mysql%E9%94%81%E5%8E%9F%E7%90%86/" title="mysql锁原理"><span>下一篇&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+    <li class="toggle-toc">
+      <a class="toggle-btn collapsed" data-toggle="collapse" href="#collapseToc" aria-expanded="false" title="文章目录" role="button">
+        <span>[&nbsp;</span><span>文章目录</span>
+        <i class="text-collapsed icon icon-anchor"></i>
+        <i class="text-in icon icon-close"></i>
+        <span>]</span>
+      </a>
+    </li>
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>赏</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>感谢您的支持，我会继续努力的!</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/alipayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开支付宝扫一扫，即可进行扫码打赏哦</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/blog/images/donate/wechatpayimg.png" alt="扫码支持" title="扫一扫" />
+              </div>
+              <p class="text-muted mv">扫码打赏，你说多少就多少</p>
+              <p class="text-grey">打开微信扫一扫，即可进行扫码打赏哦</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> 支付宝</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> 微信支付</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+<script src="/blog/js/plugin.min.js"></script>
+<script src="/blog/js/application.js"></script>
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: '文章',
+            PAGES: '页面',
+            CATEGORIES: '分类',
+            TAGS: '标签',
+            UNTITLED: '(未命名)',
+        },
+        ROOT_URL: '/blog/',
+        CONTENT_URL: '/blog/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/blog/js/insight.js"></script>
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
